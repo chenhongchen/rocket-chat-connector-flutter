@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/channel.dart';
@@ -16,12 +14,12 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() => runApp(MyApp());
 
-final String serverUrl = "myServerUrl";
-final String webSocketUrl = "myWebSocketUrl";
-final String username = "myUserName";
-final String password = "myPassword";
-final Channel channel = Channel(id: "myChannelId");
-final Room room = Room(id: "myRoomId");
+final String serverUrl = "http://192.168.20.181:3000";
+final String webSocketUrl = "ws://192.168.20.181:3000/websocket";
+final String username = "chc3";
+final String password = "123456";
+final Channel channel = Channel(id: "lw01");
+final Room room = Room(id: "648043df362852207dd6f926");
 final rocket_http_service.HttpService rocketHttpService =
     rocket_http_service.HttpService(Uri.parse(serverUrl));
 
