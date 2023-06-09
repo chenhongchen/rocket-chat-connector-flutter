@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/channel.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
@@ -7,6 +8,7 @@ import 'package:rocket_chat_connector_flutter/models/user.dart';
 import 'package:rocket_chat_connector_flutter/services/authentication_service.dart';
 import 'package:rocket_chat_connector_flutter/services/http_service.dart'
     as rocket_http_service;
+import 'package:rocket_chat_connector_flutter/services/room_service.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/notification.dart'
     as rocket_notification;
 import 'package:rocket_chat_connector_flutter/web_socket/web_socket_service.dart';
@@ -40,7 +42,7 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   final String title;
 
-  MyHomePage({Key key, @required this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -48,9 +50,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _controller = TextEditingController();
-  WebSocketChannel webSocketChannel;
+  WebSocketChannel? webSocketChannel;
   WebSocketService webSocketService = WebSocketService();
-  User user;
+  User? user;
+  Authentication? authentication;
 
   @override
   Widget build(BuildContext context) {
@@ -58,10 +61,12 @@ class _MyHomePageState extends State<MyHomePage> {
         future: getAuthentication(),
         builder: (context, AsyncSnapshot<Authentication> snapshot) {
           if (snapshot.hasData) {
-            user = snapshot.data.data.me;
+            authentication = snapshot.data;
+            user = snapshot.data?.data?.me;
             webSocketChannel = webSocketService.connectToWebSocket(
-                webSocketUrl, snapshot.data);
-            webSocketService.streamNotifyUserSubscribe(webSocketChannel, user);
+                webSocketUrl, snapshot.data!);
+            webSocketService.streamNotifyUserSubscribe(
+                webSocketChannel!, user!);
             return _getScaffold();
           } else {
             return Center(child: CircularProgressIndicator());
@@ -86,16 +91,17 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             StreamBuilder(
-              stream: webSocketChannel.stream,
+              stream: webSocketChannel?.stream,
               builder: (context, snapshot) {
                 print(snapshot.data);
-                rocket_notification.Notification notification = snapshot.hasData
-                    ? rocket_notification.Notification.fromMap(
-                        jsonDecode(snapshot.data))
-                    : null;
+                rocket_notification.Notification? notification =
+                    snapshot.hasData
+                        ? rocket_notification.Notification.fromMap(
+                            jsonDecode('${snapshot.data}'))
+                        : null;
                 print(notification);
                 webSocketService.streamNotifyUserSubscribe(
-                    webSocketChannel, user);
+                    webSocketChannel!, user!);
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24.0),
                   child: Text(
@@ -106,26 +112,45 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _sendMessage,
-        tooltip: 'Send message',
-        child: Icon(Icons.send),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: _uploadFile,
+            tooltip: 'Select file',
+            child: Icon(Icons.file_copy),
+          ),
+          SizedBox(width: 10),
+          FloatingActionButton(
+            onPressed: _sendMessage,
+            tooltip: 'Send message',
+            child: Icon(Icons.send),
+          ),
+        ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
+  Future<void> _uploadFile() async {
+    if (webSocketChannel == null || authentication == null) return;
+    String? path = await pickOneImage(context, source: ImageSource.gallery);
+    if (path == null) return;
+    final RoomService roomService = RoomService(rocketHttpService);
+    await roomService.uploadFile(room, path, authentication!);
+  }
+
   void _sendMessage() {
-    if (_controller.text.isNotEmpty) {
+    if (_controller.text.isNotEmpty && webSocketChannel != null) {
       webSocketService.sendMessageOnChannel(
-          _controller.text, webSocketChannel, channel);
+          _controller.text, webSocketChannel!, channel);
       webSocketService.sendMessageOnRoom(
-          _controller.text, webSocketChannel, room);
+          _controller.text, webSocketChannel!, room);
     }
   }
 
   @override
   void dispose() {
-    webSocketChannel.sink.close();
+    webSocketChannel?.sink.close();
     super.dispose();
   }
 
@@ -133,5 +158,27 @@ class _MyHomePageState extends State<MyHomePage> {
     final AuthenticationService authenticationService =
         AuthenticationService(rocketHttpService);
     return await authenticationService.login(username, password);
+  }
+
+  static Future<String?> pickOneImage(
+    BuildContext context, {
+    ImageSource source = ImageSource.gallery,
+    double? maxWidth,
+    double? maxHeight,
+    int? imageQuality,
+    CameraDevice preferredCameraDevice = CameraDevice.rear,
+  }) async {
+    final picker = ImagePicker();
+    try {
+      XFile? pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+        preferredCameraDevice: preferredCameraDevice,
+      );
+      return pickedFile?.path;
+    } catch (e) {
+      return null;
+    }
   }
 }
