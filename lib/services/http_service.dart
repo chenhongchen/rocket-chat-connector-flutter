@@ -10,6 +10,12 @@ class HttpService {
     _apiUrl = apiUrl;
   }
 
+  Future<http.Response> getWithParams(
+          String uri, Map params, Authentication authentication) async =>
+      await http.get(
+          Uri.parse(_apiUrl.toString() + uri + '?' + _urlEncode(params)),
+          headers: await (_getHeaders(authentication)));
+
   Future<http.Response> getWithFilter(
           String uri, Filter filter, Authentication authentication) async =>
       await http.get(

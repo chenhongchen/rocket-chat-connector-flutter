@@ -90,7 +90,7 @@ class WebSocketService {
     webSocketChannel.sink.add(jsonEncode(msg));
   }
 
-  void sendMessageOnChannel(
+  void sendMessage(
       String message, WebSocketChannel webSocketChannel, Channel channel) {
     Map msg = {
       "msg": "method",
@@ -98,20 +98,6 @@ class WebSocketService {
       "id": "42",
       "params": [
         {"rid": channel.id, "msg": message}
-      ]
-    };
-
-    webSocketChannel.sink.add(jsonEncode(msg));
-  }
-
-  void sendMessageOnRoom(
-      String message, WebSocketChannel webSocketChannel, Room room) {
-    Map msg = {
-      "msg": "method",
-      "method": "sendMessage",
-      "id": "42",
-      "params": [
-        {"rid": room.id, "msg": message}
       ]
     };
 

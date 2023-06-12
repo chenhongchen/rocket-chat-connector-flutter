@@ -19,6 +19,26 @@ class RoomService {
 
   RoomService(this._httpService);
 
+  Future<List<Room>> roomsGet(
+    Authentication authentication,
+  ) async {
+    http.Response response = await _httpService.get(
+      '/api/v1/rooms.get',
+      authentication,
+    );
+
+    if (response.statusCode == 200) {
+      if (response.body.isNotEmpty == true) {
+        Map json = jsonDecode(response.body);
+        List update = json['update'] ?? [];
+        return update.map((e) => Room.fromMap(e)).toList();
+      } else {
+        return [];
+      }
+    }
+    throw RocketChatException(response.body);
+  }
+
   Future<RoomNewResponse> create(
     RoomNew roomNew,
     Authentication authentication,
