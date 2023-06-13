@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
-import 'package:rocket_chat_connector_flutter/models/channel.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
 import 'package:rocket_chat_connector_flutter/services/authentication_service.dart';
@@ -20,8 +19,7 @@ final String serverUrl = "http://192.168.20.181:3000";
 final String webSocketUrl = "ws://192.168.20.181:3000/websocket";
 final String username = "chc3";
 final String password = "123456";
-final Channel channel = Channel(id: "lw01");
-final Room room = Room(id: "648043df362852207dd6f926");
+final Room room = Room(id: "648043df362852207dd6f926", fname: "lw01");
 final rocket_http_service.HttpService rocketHttpService =
     rocket_http_service.HttpService(Uri.parse(serverUrl));
 
@@ -67,6 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 webSocketUrl, snapshot.data!);
             webSocketService.streamNotifyUserSubscribe(
                 webSocketChannel!, user!);
+            RoomService(rocketHttpService).getRooms(authentication!);
             return _getScaffold();
           } else {
             return Center(child: CircularProgressIndicator());
@@ -141,8 +140,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _sendMessage() {
     if (_controller.text.isNotEmpty && webSocketChannel != null) {
-      webSocketService.sendMessageOnChannel(
-          _controller.text, webSocketChannel!, channel);
       webSocketService.sendMessageOnRoom(
           _controller.text, webSocketChannel!, room);
     }
@@ -175,6 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
         maxWidth: maxWidth,
         maxHeight: maxHeight,
         preferredCameraDevice: preferredCameraDevice,
+        imageQuality: imageQuality,
       );
       return pickedFile?.path;
     } catch (e) {

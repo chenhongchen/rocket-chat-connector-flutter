@@ -64,6 +64,25 @@ class HttpService {
     if (fields != null) {
       request.fields.addAll(fields);
     }
+    if (mediaType == null) {
+      var name =
+          filename.substring(filename.lastIndexOf('/') + 1, filename.length);
+      // 获取文件扩展名
+      List<String> fileNameSegments = name.split('.');
+      String fileExt = fileNameSegments.last.toLowerCase();
+      // 手动指定上传文件的contentType
+      if (fileExt == 'gif' ||
+          fileExt == 'jpg' ||
+          fileExt == 'jpeg' ||
+          fileExt == 'bmp' ||
+          fileExt == 'png') {
+        mediaType = MediaType('image', fileExt);
+      } else if (fileExt == 'mp4') {
+        mediaType = MediaType("video", fileExt);
+      } else {
+        mediaType = MediaType("application", "octet-stream");
+      }
+    }
     // 上传文件
     request.files.add(await http.MultipartFile.fromPath(field, filename,
         contentType: mediaType));

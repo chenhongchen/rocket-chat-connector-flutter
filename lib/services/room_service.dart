@@ -6,23 +6,39 @@ import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filte
 import 'package:rocket_chat_connector_flutter/models/filters/room_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_history_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/new/room_new.dart';
-import 'package:rocket_chat_connector_flutter/models/response/response.dart';
 import 'package:rocket_chat_connector_flutter/models/response/room_new_response.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
 import 'package:rocket_chat_connector_flutter/models/room_messages.dart';
+import 'package:rocket_chat_connector_flutter/services/base_room_service.dart';
 import 'package:rocket_chat_connector_flutter/services/http_service.dart';
-import 'package:http_parser/http_parser.dart';
 
-class RoomService {
-  HttpService _httpService;
+class RoomService extends BaseRoomService {
+  RoomService(HttpService httpService) : super(httpService);
 
-  RoomService(this._httpService);
-
-  Future<List<Room>> roomsGet(
+  Future<RoomNewResponse> create(
+    RoomNew roomNew,
     Authentication authentication,
   ) async {
-    http.Response response = await _httpService.get(
+    http.Response response = await httpService.post(
+      '/api/v1/im.create',
+      jsonEncode(roomNew.toMap()),
+      authentication,
+    );
+
+    if (response.statusCode == 200) {
+      if (response.body.isNotEmpty == true) {
+        return RoomNewResponse.fromMap(jsonDecode(response.body));
+      } else {
+        return RoomNewResponse();
+      }
+    }
+    throw RocketChatException(response.body);
+  }
+
+  @override
+  Future<List<Room>> getRooms(Authentication authentication) async {
+    http.Response response = await httpService.get(
       '/api/v1/rooms.get',
       authentication,
     );
@@ -39,29 +55,10 @@ class RoomService {
     throw RocketChatException(response.body);
   }
 
-  Future<RoomNewResponse> create(
-    RoomNew roomNew,
-    Authentication authentication,
-  ) async {
-    http.Response response = await _httpService.post(
-      '/api/v1/im.create',
-      jsonEncode(roomNew.toMap()),
-      authentication,
-    );
-
-    if (response.statusCode == 200) {
-      if (response.body.isNotEmpty == true) {
-        return RoomNewResponse.fromMap(jsonDecode(response.body));
-      } else {
-        return RoomNewResponse();
-      }
-    }
-    throw RocketChatException(response.body);
-  }
-
+  @override
   Future<RoomMessages> messages(
       Room room, Authentication authentication) async {
-    http.Response response = await _httpService.getWithFilter(
+    http.Response response = await httpService.getWithFilter(
       '/api/v1/im.messages',
       RoomFilter(room),
       authentication,
@@ -77,28 +74,10 @@ class RoomService {
     throw RocketChatException(response.body);
   }
 
-  Future<bool> markAsRead(Room room, Authentication authentication) async {
-    Map<String, String?> body = {"rid": room.id};
-
-    http.Response response = await _httpService.post(
-      '/api/v1/subscriptions.read',
-      jsonEncode(body),
-      authentication,
-    );
-
-    if (response.statusCode == 200) {
-      if (response.body.isNotEmpty == true) {
-        return Response.fromMap(jsonDecode(response.body)).success == true;
-      } else {
-        return false;
-      }
-    }
-    throw RocketChatException(response.body);
-  }
-
+  @override
   Future<RoomMessages> history(
       RoomHistoryFilter filter, Authentication authentication) async {
-    http.Response response = await _httpService.getWithFilter(
+    http.Response response = await httpService.getWithFilter(
       '/api/v1/im.history',
       filter,
       authentication,
@@ -114,9 +93,10 @@ class RoomService {
     throw RocketChatException(response.body);
   }
 
+  @override
   Future<RoomCounters> counters(
       RoomCountersFilter filter, Authentication authentication) async {
-    http.Response response = await _httpService.getWithFilter(
+    http.Response response = await httpService.getWithFilter(
       '/api/v1/im.counters',
       filter,
       authentication,
@@ -130,64 +110,5 @@ class RoomService {
       }
     }
     throw RocketChatException(response.body);
-  }
-
-  /// Upload File to a Room
-  Future<String> uploadFile(
-    Room room,
-    String filename,
-    Authentication authentication, {
-    // A message text
-    String? msg,
-    // A description of the file
-    String? description,
-    // The thread message id (if you want upload a file to a thread)
-    String? tMid,
-    MediaType? mediaType,
-  }) async {
-    Map<String, String> fields = {};
-
-    if (msg != null) {
-      fields['msg'] = msg;
-    }
-    if (description != null) {
-      fields['description'] = description;
-    }
-    if (tMid != null) {
-      fields['tMid'] = tMid;
-    }
-    if (mediaType == null) {
-      var name =
-          filename.substring(filename.lastIndexOf('/') + 1, filename.length);
-      // 获取文件扩展名
-      List<String> fileNameSegments = name.split('.');
-      String fileExt = fileNameSegments.last.toLowerCase();
-      // 手动指定上传文件的contentType
-      if (fileExt == 'gif' ||
-          fileExt == 'jpg' ||
-          fileExt == 'jpeg' ||
-          fileExt == 'bmp' ||
-          fileExt == 'png') {
-        mediaType = MediaType('image', fileExt);
-      } else if (fileExt == 'mp4') {
-        mediaType = MediaType("video", fileExt);
-      } else {
-        mediaType = MediaType("application", "octet-stream");
-      }
-    }
-    http.StreamedResponse response = await _httpService.postFile(
-      '/api/v1/rooms.upload/${room.id}',
-      filename,
-      authentication,
-      fields: fields,
-      mediaType: mediaType,
-    );
-
-    if (response.statusCode == 200) {
-      String responseBody = await response.stream.bytesToString();
-      print(responseBody);
-      return responseBody;
-    }
-    throw RocketChatException('${response.statusCode}');
   }
 }

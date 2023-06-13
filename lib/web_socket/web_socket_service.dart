@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
-import 'package:rocket_chat_connector_flutter/models/channel.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
 import 'package:web_socket_channel/io.dart';
@@ -50,26 +48,6 @@ class WebSocketService {
     webSocketChannel.sink.add(jsonEncode(msg));
   }
 
-  void streamChannelMessagesSubscribe(
-      WebSocketChannel webSocketChannel, Channel channel) {
-    Map msg = {
-      "msg": "sub",
-      "id": channel.id! + "subscription-id",
-      "name": "stream-room-messages",
-      "params": [channel.id, false]
-    };
-    webSocketChannel.sink.add(jsonEncode(msg));
-  }
-
-  void streamChannelMessagesUnsubscribe(
-      WebSocketChannel webSocketChannel, Channel channel) {
-    Map msg = {
-      "msg": "unsub",
-      "id": channel.id! + "subscription-id",
-    };
-    webSocketChannel.sink.add(jsonEncode(msg));
-  }
-
   void streamRoomMessagesSubscribe(
       WebSocketChannel webSocketChannel, Room room) {
     Map msg = {
@@ -90,14 +68,14 @@ class WebSocketService {
     webSocketChannel.sink.add(jsonEncode(msg));
   }
 
-  void sendMessage(
-      String message, WebSocketChannel webSocketChannel, Channel channel) {
+  void sendMessageOnRoom(
+      String message, WebSocketChannel webSocketChannel, Room room) {
     Map msg = {
       "msg": "method",
       "method": "sendMessage",
       "id": "42",
       "params": [
-        {"rid": channel.id, "msg": message}
+        {"rid": room.id, "msg": message}
       ]
     };
 

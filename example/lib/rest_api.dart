@@ -1,11 +1,11 @@
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
-import 'package:rocket_chat_connector_flutter/models/channel.dart';
-import 'package:rocket_chat_connector_flutter/models/channel_counters.dart';
-import 'package:rocket_chat_connector_flutter/models/channel_messages.dart';
-import 'package:rocket_chat_connector_flutter/models/filters/channel_counters_filter.dart';
-import 'package:rocket_chat_connector_flutter/models/filters/channel_history_filter.dart';
+import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
+import 'package:rocket_chat_connector_flutter/models/filters/room_history_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/new/message_new.dart';
 import 'package:rocket_chat_connector_flutter/models/response/message_new_response.dart';
+import 'package:rocket_chat_connector_flutter/models/room.dart';
+import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
+import 'package:rocket_chat_connector_flutter/models/room_messages.dart';
 import 'package:rocket_chat_connector_flutter/models/subscription.dart';
 import 'package:rocket_chat_connector_flutter/models/subscription_update.dart';
 import 'package:rocket_chat_connector_flutter/services/authentication_service.dart';
@@ -18,7 +18,7 @@ import 'package:rocket_chat_connector_flutter/services/subscription_service.dart
 final String serverUrl = "myServerUrl";
 final String username = "myUserName";
 final String password = "myPassword";
-final Channel channel = Channel(id: "myChannelId");
+final Room room = Room(id: "myChannelId");
 
 final rocket_http_service.HttpService rocketHttpService =
     rocket_http_service.HttpService(Uri.parse(serverUrl));
@@ -45,21 +45,19 @@ Future main(List<String> args) async {
   }
 
   // get channel message counter
-  ChannelCountersFilter filter = ChannelCountersFilter(channel);
-  ChannelCounters counters =
-      await channelService.counters(filter, authentication);
+  RoomCountersFilter filter = RoomCountersFilter(room);
+  RoomCounters counters = await channelService.counters(filter, authentication);
   print("Channel specified have ${counters.unreads} unread messages");
 
   // get channel message list
-  ChannelHistoryFilter channelHistoryFilter =
-      ChannelHistoryFilter(channel, count: 50);
-  ChannelMessages channelMessages =
+  RoomHistoryFilter channelHistoryFilter = RoomHistoryFilter(room, count: 50);
+  RoomMessages channelMessages =
       await channelService.history(channelHistoryFilter, authentication);
   print(
       "Last message : ${channelMessages.messages!.first.ts} : ${channelMessages.messages!.first.msg}");
 
   // send message
-  MessageNew messageNew = MessageNew(roomId: channel.id, text: "my message");
+  MessageNew messageNew = MessageNew(roomId: room.id, text: "my message");
   MessageNewResponse response =
       await messageService.postMessage(messageNew, authentication);
   print("Message send success : ${response.success}");
