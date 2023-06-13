@@ -2,7 +2,7 @@ class Email {
   String? address;
   bool? verified;
 
-  Email.fromMap(Map<String, dynamic> json) {
+  Email.fromMap(Map<String, dynamic>? json) {
     if (json != null) {
       address = json['address'];
       verified = json['verified'];
