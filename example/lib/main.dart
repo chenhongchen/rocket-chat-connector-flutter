@@ -1,27 +1,19 @@
-import 'dart:convert';
+import 'package:example/chat_room_page.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:rocket_chat_connector_flutter/models/authentication.dart';
+import 'package:provider/provider.dart';
+import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
+import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
-import 'package:rocket_chat_connector_flutter/models/user.dart';
-import 'package:rocket_chat_connector_flutter/services/authentication_service.dart';
-import 'package:rocket_chat_connector_flutter/services/http_service.dart'
-    as rocket_http_service;
-import 'package:rocket_chat_connector_flutter/services/room_service.dart';
-import 'package:rocket_chat_connector_flutter/web_socket/notification.dart'
-    as rocket_notification;
-import 'package:rocket_chat_connector_flutter/web_socket/web_socket_service.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
+import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 void main() => runApp(MyApp());
 
 final String serverUrl = "http://192.168.20.181:3000";
 final String webSocketUrl = "ws://192.168.20.181:3000/websocket";
-final String username = "chc3";
-final String password = "123456";
-final Room room = Room(id: "648043df362852207dd6f926", fname: "lw01");
-final rocket_http_service.HttpService rocketHttpService =
-    rocket_http_service.HttpService(Uri.parse(serverUrl));
+final String username = "chc";
+final String password = "hc123456";
 
 class MyApp extends StatelessWidget {
   @override
@@ -47,30 +39,99 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  TextEditingController _controller = TextEditingController();
-  WebSocketChannel? webSocketChannel;
-  WebSocketService webSocketService = WebSocketService();
-  User? user;
-  Authentication? authentication;
+  final List<Room> _rooms = <Room>[];
+  final Map<String, RoomCounters?> _roomCountersMap = <String, RoomCounters>{};
+
+  @override
+  void dispose() {
+    ImManager().dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    _initIm();
+    super.initState();
+  }
+
+  _initIm() async {
+    ImManager().init(serverUrl, webSocketUrl);
+    await ImManager().login(username, password);
+    _loadRooms();
+    ImManager().addMsgListener(_msgListener);
+  }
+
+  _loadRooms() async {
+    _rooms.clear();
+    var rooms = await ImManager().getRooms();
+    // 按最后消息时间降序排列
+    rooms?.sort((a, b) {
+      String ats = a.lastMessage?.ts?.toIso8601String() ?? '';
+      String bts = b.lastMessage?.ts?.toIso8601String() ?? '';
+      return bts.compareTo(ats);
+    });
+    if (rooms != null) {
+      _rooms.addAll(rooms);
+      setState(() {});
+    }
+    _setUnreadCount();
+  }
+
+  _setUnreadCount() async {
+    List<Room> rooms = List<Room>.from(_rooms);
+    for (Room room in rooms) {
+      await _updateRoomCounters(room);
+    }
+    setState(() {});
+  }
+
+  _updateRoomCounters(Room room) async {
+    RoomCounters? roomCounters =
+        await ImManager().counters(RoomCountersFilter(room));
+    if (room.id != null && room.id!.isNotEmpty == true) {
+      _roomCountersMap[room.id!] = roomCounters;
+    }
+  }
+
+  _msgListener(Message message) {
+    Room? newMsgRoom;
+    for (Room room in _rooms) {
+      if (message.rid == room.id) {
+        newMsgRoom = room;
+        newMsgRoom.lastMessage = message;
+      }
+    }
+    if (newMsgRoom != null) {
+      _rooms.remove(newMsgRoom);
+      _rooms.insert(0, newMsgRoom);
+      RoomCounters? roomCounters = _roomCountersMap[newMsgRoom.id];
+      if (roomCounters != null) {
+        roomCounters.unreads = (roomCounters.unreads ?? 0) + 1;
+      }
+      setState(() {});
+    } else {
+      _loadRooms();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Authentication>(
-        future: getAuthentication(),
-        builder: (context, AsyncSnapshot<Authentication> snapshot) {
-          if (snapshot.hasData) {
-            authentication = snapshot.data;
-            user = snapshot.data?.data?.me;
-            webSocketChannel = webSocketService.connectToWebSocket(
-                webSocketUrl, snapshot.data!);
-            webSocketService.streamNotifyUserSubscribe(
-                webSocketChannel!, user!);
-            RoomService(rocketHttpService).getRooms(authentication!);
+    return ChangeNotifierProvider.value(
+      value: ImManager(),
+      child: Consumer(
+        builder: (
+          BuildContext context,
+          ImManager value,
+          Widget? child,
+        ) {
+          if (value.isLogin) {
             return _getScaffold();
           } else {
             return Center(child: CircularProgressIndicator());
           }
-        });
+        },
+      ),
+    );
   }
 
   Scaffold _getScaffold() {
@@ -80,103 +141,83 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Form(
-              child: TextFormField(
-                controller: _controller,
-                decoration: InputDecoration(labelText: 'Send a message'),
-              ),
-            ),
-            StreamBuilder(
-              stream: webSocketChannel?.stream,
-              builder: (context, snapshot) {
-                print(snapshot.data);
-                rocket_notification.Notification? notification =
-                    snapshot.hasData
-                        ? rocket_notification.Notification.fromMap(
-                            jsonDecode('${snapshot.data}'))
-                        : null;
-                print(notification);
-                webSocketService.streamNotifyUserSubscribe(
-                    webSocketChannel!, user!);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0),
-                  child: Text(
-                      notification != null ? '${notification.toString()}' : ''),
-                );
-              },
-            )
-          ],
+        child: ListView.builder(
+          itemCount: _rooms.length,
+          itemBuilder: (context, index) {
+            Room room = _rooms[index];
+            return _buildCell(room);
+          },
         ),
-      ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            onPressed: _uploadFile,
-            tooltip: 'Select file',
-            child: Icon(Icons.file_copy),
-          ),
-          SizedBox(width: 10),
-          FloatingActionButton(
-            onPressed: _sendMessage,
-            tooltip: 'Send message',
-            child: Icon(Icons.send),
-          ),
-        ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
-  Future<void> _uploadFile() async {
-    if (webSocketChannel == null || authentication == null) return;
-    String? path = await pickOneImage(context, source: ImageSource.gallery);
-    if (path == null) return;
-    final RoomService roomService = RoomService(rocketHttpService);
-    await roomService.uploadFile(room, path, authentication!);
-  }
-
-  void _sendMessage() {
-    if (_controller.text.isNotEmpty && webSocketChannel != null) {
-      webSocketService.sendMessageOnRoom(
-          _controller.text, webSocketChannel!, room);
+  Widget _buildCell(Room room) {
+    String msg = '';
+    if (room.lastMessage != null) {
+      String userName = room.lastMessage?.user?.username ?? '';
+      if ((room.lastMessage?.msg ?? '').isNotEmpty) {
+        msg = userName + '：' + (room.lastMessage?.msg ?? '');
+      } else if (msg.isEmpty &&
+          room.lastMessage?.attachments?.isNotEmpty == true) {
+        String type = '上传了一个文件';
+        if (room.lastMessage!.attachments!.first.imageUrl != null) {
+          type = '发了一条图片消息';
+        } else if (room.lastMessage!.attachments!.first.videoUrl != null) {
+          type = '发了一条视频消息';
+        }
+        msg = userName + '：' + type;
+      }
     }
-  }
-
-  @override
-  void dispose() {
-    webSocketChannel?.sink.close();
-    super.dispose();
-  }
-
-  Future<Authentication> getAuthentication() async {
-    final AuthenticationService authenticationService =
-        AuthenticationService(rocketHttpService);
-    return await authenticationService.login(username, password);
-  }
-
-  static Future<String?> pickOneImage(
-    BuildContext context, {
-    ImageSource source = ImageSource.gallery,
-    double? maxWidth,
-    double? maxHeight,
-    int? imageQuality,
-    CameraDevice preferredCameraDevice = CameraDevice.rear,
-  }) async {
-    final picker = ImagePicker();
-    try {
-      XFile? pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: maxWidth,
-        maxHeight: maxHeight,
-        preferredCameraDevice: preferredCameraDevice,
-        imageQuality: imageQuality,
-      );
-      return pickedFile?.path;
-    } catch (e) {
-      return null;
+    int unread = 0;
+    RoomCounters? roomCounters = _roomCountersMap[room.id];
+    if (roomCounters != null) {
+      unread = roomCounters.unreads ?? 0;
     }
+    return Row(
+      children: [
+        Expanded(
+          child: ListTile(
+            title: Text(room.roomName),
+            subtitle: Text(
+              msg,
+              style:
+                  TextStyle(fontSize: 12, color: Colors.grey.withOpacity(0.5)),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => ChatRoomPage(room),
+                ),
+              ).then((value) async {
+                RoomCounters? roomCounters = _roomCountersMap[room.id];
+                roomCounters?.unreads = 0;
+                setState(() {});
+              });
+            },
+          ),
+        ),
+        SizedBox(width: 5),
+        if (unread > 0)
+          Container(
+            height: 22,
+            width: unread < 10 ? 22 : null,
+            padding: EdgeInsets.only(left: 6, right: 6),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Text(
+              '$unread',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

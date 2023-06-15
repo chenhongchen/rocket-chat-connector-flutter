@@ -12,17 +12,23 @@ class AuthenticationService {
   AuthenticationService(this._httpService);
 
   Future<Authentication> login(String user, String password) async {
-    Map<String, String> body = {'user': user, 'password': password};
+    Map<String, String> data = {'user': user, 'password': password};
     http.Response response = await _httpService.post(
       '/api/v1/login',
-      jsonEncode(body),
+      jsonEncode(data),
       null,
     );
 
-    if (response.statusCode == 200 && response.body.isNotEmpty == true) {
-      return Authentication.fromMap(jsonDecode(response.body));
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
     }
-    throw RocketChatException(response.body);
+
+    if (response.statusCode == 200) {
+      return Authentication.fromMap(jsonDecode(body));
+    }
+    throw RocketChatException(body);
   }
 
   Future<User> me(Authentication authentication) async {
@@ -31,13 +37,15 @@ class AuthenticationService {
       authentication,
     );
 
-    if (response.statusCode == 200) {
-      if (response.body.isNotEmpty == true) {
-        return User.fromMap(jsonDecode(response.body));
-      } else {
-        return User();
-      }
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
     }
-    throw RocketChatException(response.body);
+
+    if (response.statusCode == 200) {
+      return User.fromMap(jsonDecode(body));
+    }
+    throw RocketChatException(body);
   }
 }

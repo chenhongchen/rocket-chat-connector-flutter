@@ -6,36 +6,39 @@ import 'package:rocket_chat_connector_flutter/web_socket/notification_type.dart'
 class Notification {
   NotificationType? msg;
   String? collection;
+  String? id;
+  NotificationFields? fields;
+
+  // 下面字段目前没看到有
   String? serverId;
   List<String>? subs;
   List<String>? methods;
-  String? id;
-  NotificationFields? fields;
   NotificationResult? result;
 
   Notification({
     this.msg,
     this.collection,
+    this.id,
+    this.fields,
     this.serverId,
     this.subs,
     this.methods,
-    this.id,
-    this.fields,
     this.result,
   });
 
-  Notification.fromMap(Map<String, dynamic> json) {
+  Notification.fromMap(Map<String, dynamic>? json) {
     if (json != null) {
       msg = notificationTypeFromString(json['msg']);
       collection = json['collection'];
-      serverId = json['server_id'];
-      subs = json['subs'] != null ? List<String>.from(json['subs']) : null;
-      methods =
-          json['methods'] != null ? List<String>.from(json['methods']) : null;
       id = json["id"];
       fields = json['fields'] != null
           ? NotificationFields.fromMap(json["fields"])
           : null;
+      //
+      serverId = json['server_id'];
+      subs = json['subs'] != null ? List<String>.from(json['subs']) : null;
+      methods =
+          json['methods'] != null ? List<String>.from(json['methods']) : null;
       result = json['result'] != null
           ? NotificationResult.fromMap(json['result'])
           : null;

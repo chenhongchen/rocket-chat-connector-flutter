@@ -1,10 +1,12 @@
 import 'package:rocket_chat_connector_flutter/web_socket/notification_payload.dart';
 
 class NotificationArgs {
-  String? title;
-  String? text;
-  DateTime? ts;
+  String? title; // channel name
+  String? text; // 发消息用户名: 消息内容
   NotificationPayload? payload;
+
+  // 目前没发现有下面字段
+  DateTime? ts;
 
   NotificationArgs({
     this.title,
@@ -12,7 +14,7 @@ class NotificationArgs {
     this.payload,
   });
 
-  NotificationArgs.fromMap(Map<String, dynamic> json) {
+  NotificationArgs.fromMap(Map<String, dynamic>? json) {
     if (json != null) {
       title = json['title'];
       text = json['text'];

@@ -14,6 +14,7 @@ class MessageNewResponse {
   });
 
   MessageNewResponse.fromMap(Map<String, dynamic>? json) {
+    print('MessageNewResponse :: $json');
     if (json != null) {
       ts = json['ts'];
       channel = json['channel'];

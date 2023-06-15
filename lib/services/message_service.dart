@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:rocket_chat_connector_flutter/exceptions/exception.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
@@ -20,13 +20,50 @@ class MessageService {
       authentication,
     );
 
-    if (response.statusCode == 200) {
-      if (response.body.isNotEmpty == true) {
-        return MessageNewResponse.fromMap(jsonDecode(response.body));
-      } else {
-        return MessageNewResponse();
-      }
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
     }
-    throw RocketChatException(response.body);
+
+    if (response.statusCode == 200) {
+      return MessageNewResponse.fromMap(jsonDecode(body));
+    }
+    throw RocketChatException(body);
+  }
+
+  Future<MessageNewResponse?> getMessage(
+      String msgId, Authentication authentication) async {
+    http.Response response = await _httpService.getWithParams(
+      '/api/v1/chat.getMessage',
+      {'msgId': msgId},
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      return MessageNewResponse.fromMap(jsonDecode(body));
+    }
+    throw RocketChatException(body);
+  }
+
+  Future<Uint8List> getFile(
+      String fileUri, Authentication authentication) async {
+    final response = await _httpService.get(
+      fileUri,
+      authentication,
+    );
+
+    if (response.statusCode == 200) {
+      final bytes = response.bodyBytes;
+      return bytes;
+    } else {
+      throw Exception('Failed to load image: ${response.statusCode}');
+    }
   }
 }

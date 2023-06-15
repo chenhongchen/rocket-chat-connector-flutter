@@ -3,9 +3,10 @@ import 'package:rocket_chat_connector_flutter/web_socket/notification_user.dart'
 
 class NotificationPayload {
   String? id;
-  String? rid;
+  String? rid; // room id
   NotificationUser? sender;
   String? type;
+  String? name; // channel name
   NotificationMessage? message;
 
   NotificationPayload({
@@ -13,6 +14,7 @@ class NotificationPayload {
     this.rid,
     this.sender,
     this.type,
+    this.name,
     this.message,
   });
 
@@ -24,6 +26,7 @@ class NotificationPayload {
           ? NotificationUser.fromMap(json['sender'])
           : null;
       type = json['type'];
+      name = json['name'];
       message = json['message'] != null
           ? NotificationMessage.fromMap(json['message'])
           : null;

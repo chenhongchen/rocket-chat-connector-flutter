@@ -3,6 +3,7 @@ import 'package:rocket_chat_connector_flutter/exceptions/exception.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_history_filter.dart';
+import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/response/response.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:http_parser/http_parser.dart';
@@ -30,26 +31,28 @@ abstract class BaseRoomService {
 
   /// 标记已读
   Future<bool> markAsRead(Room room, Authentication authentication) async {
-    Map<String, String?> body = {"rid": room.id};
+    Map<String, String?> data = {"rid": room.id};
 
     http.Response response = await httpService.post(
       '/api/v1/subscriptions.read',
-      jsonEncode(body),
+      jsonEncode(data),
       authentication,
     );
 
-    if (response.statusCode == 200) {
-      if (response.body.isNotEmpty == true) {
-        return Response.fromMap(jsonDecode(response.body)).success == true;
-      } else {
-        return false;
-      }
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
     }
-    throw RocketChatException(response.body);
+
+    if (response.statusCode == 200) {
+      return Response.fromMap(jsonDecode(body)).success == true;
+    }
+    throw RocketChatException(body);
   }
 
   /// Upload File to a Room
-  Future<String> uploadFile(
+  Future<Message> uploadFile(
     Room room,
     String filename,
     Authentication authentication, {
@@ -83,7 +86,8 @@ abstract class BaseRoomService {
     if (response.statusCode == 200) {
       String responseBody = await response.stream.bytesToString();
       print(responseBody);
-      return responseBody;
+      var json = jsonDecode(responseBody);
+      return Message.fromMap(json['message']);
     }
     throw RocketChatException('${response.statusCode}');
   }

@@ -1,35 +1,37 @@
+import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
 
 class Room {
-  // "name": "testing",
-  // "fname": "testing",
-  // "usersCount": 2,
-  // "u": {
-  // "_id": "HKKPmF8rZh45GMHWH",
-  // "username": "marcos.defendi"
-  // },
-  // "customFields": {},
-  // "broadcast": false,
-  // "encrypted": false,
-  // "ro": false,
-  // "default": false,
-  // "sysMes": true,
-  // "_updatedAt": "2020-05-21T13:14:07.096Z"
   String? id; // room id
-  String? name;
   String? fname; // channel name
+  DateTime? updatedAt;
+  Map? customFields;
+  bool? broadcast;
+  bool? encrypted;
+  String? name; // channel name
   String? t;
   int? msgs; // 消息数
   int? usersCount; // 用户数
   User? user;
-  Map? customFields;
-  bool? broadcast;
-  bool? encrypted;
   DateTime? ts;
   bool? ro;
   bool? def;
   bool? sysMes;
-  DateTime? updatedAt;
+  String? topic; //--
+  Message? lastMessage; //--
+  DateTime? lm; // --
+  List<String>? usernames; // 私聊独有字段 --
+  List<String>? uids; //私聊独有字段 --
+
+  String get roomName {
+    String title = name ?? '';
+    if (title.isEmpty && usernames != null && usernames!.isNotEmpty == true) {
+      title = usernames!.last;
+    }
+    return title;
+  }
+
+  bool get isChannel => (name != null && name!.isNotEmpty);
 
   Room({
     this.id,
@@ -47,6 +49,11 @@ class Room {
     this.def,
     this.sysMes,
     this.updatedAt,
+    this.topic,
+    this.lastMessage,
+    this.lm,
+    this.usernames,
+    this.uids,
   });
 
   Room.fromMap(Map<String, dynamic>? json) {
@@ -68,6 +75,15 @@ class Room {
       updatedAt = json['_updatedAt'] != null
           ? DateTime.parse(json['_updatedAt'])
           : null;
+      topic = json['topic'];
+      lastMessage = json['lastMessage'] != null
+          ? Message.fromMap(json['lastMessage'])
+          : null;
+      lm = json['lm'] != null ? DateTime.parse(json['lm']) : null;
+      usernames = json['usernames'] != null
+          ? List<String>.from(json['usernames'])
+          : null;
+      uids = json['uids'] != null ? List<String>.from(json['uids']) : null;
     }
   }
 
@@ -87,6 +103,11 @@ class Room {
         'default': def,
         'sysMes': sysMes,
         '_updatedAt': updatedAt != null ? updatedAt!.toIso8601String() : null,
+        'topic': topic,
+        'lastMessage': lastMessage != null ? lastMessage!.toMap() : null,
+        'lm': lm != null ? lm!.toIso8601String() : null,
+        'usernames': usernames,
+        'uids': uids,
       };
 
   @override

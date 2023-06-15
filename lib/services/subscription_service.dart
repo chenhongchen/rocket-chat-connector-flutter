@@ -17,13 +17,15 @@ class SubscriptionService {
       authentication,
     );
 
-    if (response.statusCode == 200) {
-      if (response.body.isNotEmpty == true) {
-        return Subscription.fromMap(jsonDecode(response.body));
-      } else {
-        return Subscription();
-      }
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
     }
-    throw RocketChatException(response.body);
+
+    if (response.statusCode == 200) {
+      return Subscription.fromMap(jsonDecode(body));
+    }
+    throw RocketChatException(body);
   }
 }
