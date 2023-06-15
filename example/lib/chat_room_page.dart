@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:example/chat_room_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -134,19 +137,19 @@ class _ChatRoomPage extends State<ChatRoomPage> {
               height: height,
               color: Colors.grey.withOpacity(0.5),
               child: FutureBuilder(
-                  future: ImManager().getFile(attachment.imageUrl!),
-                  builder: (BuildContext context, AsyncSnapshot snapshot) {
-                    if (snapshot.hasData) {
-                      return Image.memory(
-                        snapshot.data,
-                        width: contentWidth,
-                        height: height,
-                        fit: BoxFit.cover,
-                      );
-                    } else {
-                      return Container();
-                    }
-                  }),
+                future: ImManager().getFile(attachment.imageUrl!),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  Uint8List bytes = snapshot.hasData
+                      ? snapshot.data
+                      : base64Decode(attachment.imagePreview!);
+                  return Image.memory(
+                    bytes,
+                    width: contentWidth,
+                    height: height,
+                    fit: BoxFit.cover,
+                  );
+                },
+              ),
             )
           ],
         );

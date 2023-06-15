@@ -115,6 +115,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: [
+          GestureDetector(
+            child: Container(
+              padding: EdgeInsets.only(right: 10),
+              child: Icon(Icons.image),
+            ),
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
