@@ -213,8 +213,11 @@ class ImManager extends ChangeNotifier {
       var result = map['result'];
       if (result == null) return;
       for (MsgListener? msgListener in _msgListeners) {
-        msgListener?.call(Message.fromMap(result!));
-        channelManager.notify();
+        Message message = Message.fromMap(result!);
+        if (message.id != null) {
+          msgListener?.call(Message.fromMap(result!));
+          channelManager.notify();
+        }
       }
     }
   }

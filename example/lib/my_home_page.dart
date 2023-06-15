@@ -39,7 +39,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _loadRooms() async {
-    _rooms.clear();
     var rooms = await ImManager().getRooms();
     // 按最后消息时间降序排列
     rooms?.sort((a, b) {
@@ -47,6 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
       String bts = b.lastMessage?.ts?.toIso8601String() ?? '';
       return bts.compareTo(ats);
     });
+    _rooms.clear();
     if (rooms != null) {
       _rooms.addAll(rooms);
       setState(() {});
