@@ -1,5 +1,4 @@
 import 'package:example/chat_room_view_model.dart';
-import 'package:example/main.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -43,7 +42,12 @@ class _ChatRoomPage extends State<ChatRoomPage> {
       appBar: AppBar(
         title: Text(widget.room.roomName),
       ),
-      body: _buildBody(),
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).requestFocus(FocusNode());
+        },
+        child: _buildBody(),
+      ),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -117,7 +121,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
             (attachment.imageDimensions?.width ?? 1);
         content = Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: message.user?.id == username
+          crossAxisAlignment: message.user?.id == ImManager().me?.id
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
@@ -174,7 +178,9 @@ class _ChatRoomPage extends State<ChatRoomPage> {
       content = Container(
         padding: EdgeInsets.all(5),
         constraints: BoxConstraints(minHeight: 50, maxWidth: contentWidth),
-        alignment: Alignment.centerLeft,
+        alignment: message.user?.id == ImManager().me?.id
+            ? Alignment.centerRight
+            : Alignment.centerLeft,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(6),
           color: Colors.grey.withOpacity(0.5),
@@ -204,7 +210,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
       ),
     );
 
-    if (message.user?.username == username) {
+    if (message.user?.id == ImManager().me?.id) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [

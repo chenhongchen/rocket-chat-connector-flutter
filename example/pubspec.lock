@@ -85,6 +85,15 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "6.1.4"
+  flt_hc_hud:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "f2.10"
+      resolved-ref: "0c28a4e6f6598f126e4fa9dbf065f5a4f7971d7f"
+      url: "https://github.com/chenhongchen/flt_hc_hud"
+    source: git
+    version: "0.0.1"
   flutter:
     dependency: "direct main"
     description: flutter
