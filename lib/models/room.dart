@@ -1,5 +1,6 @@
 import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
+import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 class Room {
   String? id; // room id
@@ -26,7 +27,13 @@ class Room {
   String get roomName {
     String title = name ?? '';
     if (title.isEmpty && usernames != null && usernames!.isNotEmpty == true) {
-      title = usernames!.last;
+      title = usernames!.first;
+      for (String username in usernames!) {
+        if (username != ImManager().me?.username) {
+          title = username;
+          break;
+        }
+      }
     }
     return title;
   }

@@ -1,13 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:example/chat_room_page.dart';
 import 'package:example/utils.dart';
 import 'package:flt_hc_hud/flt_hc_hud.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
+import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
 import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -165,6 +169,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     return Row(
       children: [
+        _buildAvatar(room),
+        SizedBox(width: 5),
         Expanded(
           child: ListTile(
             title: Text(room.roomName),
@@ -208,6 +214,44 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
       ],
     );
+  }
+
+  Widget _buildAvatar(Room room) {
+    String userName = room.roomName;
+    print('_buildAvatar :: $room');
+    String? rid = (userName.isNotEmpty ? null : (room.id ?? ''));
+    return FutureBuilder(
+        future: ImManager().getRoomAvatar(rid, userName),
+        builder: (BuildContext context, AsyncSnapshot<Avatar?> snapshot) {
+          Widget child;
+          if (snapshot.data is Avatar) {
+            if (snapshot.data?.svg != null) {
+              child = SvgPicture.string(
+                (snapshot.data?.svg ?? '')
+                    .replaceAll('100%', '200')
+                    .replaceAll('x=\"50%\"', 'x=\"100\"')
+                    .replaceAll('y=\"50%\"', 'y=\"140\"'),
+              );
+            } else {
+              child = Image.memory(snapshot.data?.image as Uint8List);
+            }
+          } else {
+            child = Text(
+              (room.name ?? ' ').substring(0, 1).toUpperCase(),
+              style: TextStyle(fontSize: 15, color: Colors.white),
+            );
+          }
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+            child: Container(
+              width: 50,
+              height: 50,
+              color: Colors.grey,
+              alignment: Alignment.center,
+              child: child,
+            ),
+          );
+        });
   }
 
   Future<void> _setAvatar() async {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:rocket_chat_connector_flutter/exceptions/exception.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
@@ -90,5 +91,27 @@ abstract class BaseRoomService {
       return Message.fromMap(json['message']);
     }
     throw RocketChatException('${response.statusCode}');
+  }
+
+  /// 获取头像（频繁调用会失败）
+  Future<Uint8List?> getAvatar(
+      String? rid, String? username, Authentication authentication) async {
+    String uri = '';
+    if (username != null) {
+      uri = '/avatar/$username';
+    } else if (rid != null) {
+      uri = '/avatar/room/$rid';
+    }
+    if (uri.isEmpty) return null;
+    http.Response response = await _httpService.get(
+      uri,
+      authentication,
+    );
+
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    } else {
+      return null;
+    }
   }
 }

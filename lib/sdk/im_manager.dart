@@ -58,7 +58,9 @@ class ImManager extends ChangeNotifier {
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
 
-  final _lock = new Lock();
+  final _msgAvatarLock = new Lock();
+
+  final _roomAvatarLock = new Lock();
 
   @override
   void dispose() {
@@ -198,7 +200,7 @@ class ImManager extends ChangeNotifier {
     }
     if (uList == null) {
       // 确保只有一个线程可以访问该代码块
-      await _lock.synchronized(() async {
+      await _msgAvatarLock.synchronized(() async {
         if (_loadedAvatarKeys.contains(userId)) {
           uList = await ImUtil.readFileFromCache(userId);
         }
@@ -233,7 +235,7 @@ class ImManager extends ChangeNotifier {
     }
     if (uList == null) {
       // 确保只有一个线程可以访问该代码块
-      await _lock.synchronized(() async {
+      await _msgAvatarLock.synchronized(() async {
         if (_loadedAvatarKeys.contains(username)) {
           uList = await ImUtil.readFileFromCache(username);
         }
@@ -244,6 +246,43 @@ class ImManager extends ChangeNotifier {
             _loadedAvatarKeys.add(username);
           }
           await ImUtil.writeFileToCache(username, uList);
+        }
+      });
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList!);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  /// 获取room 头像
+  /// rid 和 username 不能全为空
+  Future<Avatar?> getRoomAvatar(String? rid, String? username) async {
+    if (rid == null && username == null) return null;
+    String key = 'room_' + (rid ?? username)!;
+    Uint8List? uList;
+    if (_loadedAvatarKeys.contains(key)) {
+      uList = await ImUtil.readFileFromCache(key);
+    }
+    if (uList == null) {
+      // 确保只有一个线程可以访问该代码块
+      await _roomAvatarLock.synchronized(() async {
+        if (_loadedAvatarKeys.contains(key)) {
+          uList = await ImUtil.readFileFromCache(key);
+        }
+        if (uList == null) {
+          uList = await RoomService(_rocketHttpService)
+              .getAvatar(rid, username, _authentication!);
+          if (!_loadedAvatarKeys.contains(key)) {
+            _loadedAvatarKeys.add(key);
+          }
+          await ImUtil.writeFileToCache(key, uList);
         }
       });
     }

@@ -217,14 +217,14 @@ class _ChatRoomPage extends State<ChatRoomPage> {
             }
           } else {
             child = Text(
-              ((message.user?.name ?? message.user?.username) ?? '')
+              ((message.user?.name ?? message.user?.username) ?? ' ')
                   .substring(0, 1)
                   .toUpperCase(),
               style: TextStyle(fontSize: 15, color: Colors.white),
             );
           }
           return ClipRRect(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(avatarW * 0.5),
             child: Container(
               width: avatarW,
               height: avatarW,
