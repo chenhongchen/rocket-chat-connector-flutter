@@ -1,4 +1,5 @@
 import 'package:example/chat_room_page.dart';
+import 'package:example/utils.dart';
 import 'package:flt_hc_hud/flt_hc_hud.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -117,6 +118,9 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         actions: [
           GestureDetector(
+            onTap: () {
+              _setAvatar();
+            },
             child: Container(
               padding: EdgeInsets.only(right: 10),
               child: Icon(Icons.image),
@@ -204,5 +208,11 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
       ],
     );
+  }
+
+  Future<void> _setAvatar() async {
+    String? path = await Utils.pickOneImage(context);
+    if (path == null) return;
+    await ImManager().setAvatarWithImageFile(path);
   }
 }

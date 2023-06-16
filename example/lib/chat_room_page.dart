@@ -1,14 +1,16 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:example/chat_room_view_model.dart';
+import 'package:example/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
+import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
 import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final Room room;
@@ -112,7 +114,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
   Widget _buildCell(Message message) {
     late Widget content;
     double screenW = MediaQuery.of(context).size.width;
-    double avatarW = 50;
+    double avatarW = 36;
     double padding = 5;
     double contentWidth = screenW * 0.45;
     if (message.attachments != null && message.attachments!.isNotEmpty) {
@@ -139,7 +141,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
               child: FutureBuilder(
                 future: ImManager().getFile(attachment.imageUrl!),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
-                  Uint8List bytes = snapshot.hasData
+                  Uint8List bytes = snapshot.data is Uint8List
                       ? snapshot.data
                       : base64Decode(attachment.imagePreview!);
                   return Image.memory(
@@ -198,20 +200,40 @@ class _ChatRoomPage extends State<ChatRoomPage> {
       );
     }
 
-    Widget avatar = Container(
-      width: avatarW,
-      height: avatarW,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        color: Colors.grey,
-      ),
-      child: Text(
-        (message.user?.name ?? message.user?.username) ?? '',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
+    Widget avatar = FutureBuilder(
+        future: ImManager().getAvatarWithUid(message.user?.id),
+        builder: (BuildContext context, AsyncSnapshot<Avatar?> snapshot) {
+          Widget child;
+          if (snapshot.data is Avatar) {
+            if (snapshot.data?.svg != null) {
+              child = SvgPicture.string(
+                (snapshot.data?.svg ?? '')
+                    .replaceAll('100%', '200')
+                    .replaceAll('x=\"50%\"', 'x=\"100\"')
+                    .replaceAll('y=\"50%\"', 'y=\"140\"'),
+              );
+            } else {
+              child = Image.memory(snapshot.data?.image as Uint8List);
+            }
+          } else {
+            child = Text(
+              ((message.user?.name ?? message.user?.username) ?? '')
+                  .substring(0, 1)
+                  .toUpperCase(),
+              style: TextStyle(fontSize: 15, color: Colors.white),
+            );
+          }
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+            child: Container(
+              width: avatarW,
+              height: avatarW,
+              color: Colors.grey,
+              alignment: Alignment.center,
+              child: child,
+            ),
+          );
+        });
 
     if (message.user?.id == ImManager().me?.id) {
       return Column(
@@ -254,7 +276,8 @@ class _ChatRoomPage extends State<ChatRoomPage> {
   }
 
   Future<void> _uploadFile() async {
-    String? path = await pickOneImage(context, source: ImageSource.gallery);
+    String? path =
+        await Utils.pickOneImage(context, source: ImageSource.gallery);
     if (path == null) return;
     ImManager().sendFileMsg(path, widget.room, description: _controller.text);
     _controller.text = '';
@@ -264,29 +287,6 @@ class _ChatRoomPage extends State<ChatRoomPage> {
     if (_controller.text.isNotEmpty) {
       ImManager().sendTextMsg(_controller.text, widget.room);
       _controller.text = '';
-    }
-  }
-
-  static Future<String?> pickOneImage(
-    BuildContext context, {
-    ImageSource source = ImageSource.gallery,
-    double? maxWidth,
-    double? maxHeight,
-    int? imageQuality,
-    CameraDevice preferredCameraDevice = CameraDevice.rear,
-  }) async {
-    final picker = ImagePicker();
-    try {
-      XFile? pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: maxWidth,
-        maxHeight: maxHeight,
-        preferredCameraDevice: preferredCameraDevice,
-        imageQuality: imageQuality,
-      );
-      return pickedFile?.path;
-    } catch (e) {
-      return null;
     }
   }
 }

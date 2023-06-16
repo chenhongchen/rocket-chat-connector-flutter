@@ -83,15 +83,15 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             SizedBox(height: 50),
-            Container(
-              width: 120,
-              height: 44,
-              color: Colors.blue,
-              alignment: Alignment.center,
-              child: TextButton(
-                onPressed: () {
-                  _configIm();
-                },
+            GestureDetector(
+              onTap: () {
+                _configIm();
+              },
+              child: Container(
+                width: 120,
+                height: 44,
+                color: Colors.blue,
+                alignment: Alignment.center,
                 child: Text(
                   '登录',
                   style: TextStyle(color: Colors.white),

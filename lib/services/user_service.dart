@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:rocket_chat_connector_flutter/exceptions/exception.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
@@ -56,11 +57,11 @@ class UserService {
       '/api/v1/users.setAvatar',
       imageFileName,
       authentication,
+      field: 'image',
     );
 
     if (response.statusCode == 200) {
       String responseBody = await response.stream.bytesToString();
-      print(responseBody);
       return responseBody;
     }
     throw RocketChatException('${response.statusCode}');
@@ -86,7 +87,8 @@ class UserService {
     throw RocketChatException(body);
   }
 
-  Future<String> getAvatarWithUid(
+  /// 获取头像（频繁调用会失败）
+  Future<Uint8List?> getAvatarWithUid(
       String userId, Authentication authentication) async {
     http.Response response = await _httpService.getWithParams(
       '/api/v1/users.getAvatar',
@@ -94,19 +96,16 @@ class UserService {
       authentication,
     );
 
-    String body = response.body;
-    // utf8手动转，避免自动转中文乱码
-    if (response.bodyBytes.isNotEmpty == true) {
-      body = Utf8Decoder().convert(response.bodyBytes);
-    }
-
     if (response.statusCode == 200) {
-      return body;
+      return response.bodyBytes;
+    } else {
+      String body = response.body;
+      return null;
     }
-    throw RocketChatException(body);
   }
 
-  Future<String> getAvatarWithUsername(
+  /// 获取头像（频繁调用会失败）
+  Future<Uint8List?> getAvatarWithUsername(
       String username, Authentication authentication) async {
     http.Response response = await _httpService.getWithParams(
       '/api/v1/users.getAvatar',
@@ -114,15 +113,10 @@ class UserService {
       authentication,
     );
 
-    String body = response.body;
-    // utf8手动转，避免自动转中文乱码
-    if (response.bodyBytes.isNotEmpty == true) {
-      body = Utf8Decoder().convert(response.bodyBytes);
-    }
-
     if (response.statusCode == 200) {
-      return body;
+      return response.bodyBytes;
+    } else {
+      return null;
     }
-    throw RocketChatException(body);
   }
 }

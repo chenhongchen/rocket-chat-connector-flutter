@@ -10,11 +10,13 @@ import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
 import 'package:rocket_chat_connector_flutter/models/room_messages.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
+import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
 import 'package:rocket_chat_connector_flutter/sdk/im_util.dart';
 import 'package:rocket_chat_connector_flutter/services/authentication_service.dart';
 import 'package:rocket_chat_connector_flutter/services/channel_service.dart';
 import 'package:rocket_chat_connector_flutter/services/message_service.dart';
 import 'package:rocket_chat_connector_flutter/services/room_service.dart';
+import 'package:rocket_chat_connector_flutter/services/user_service.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/notification_args.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/notification_type.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/web_socket_service.dart';
@@ -23,6 +25,7 @@ import 'package:rocket_chat_connector_flutter/services/http_service.dart'
     as rocket_http_service;
 import 'package:rocket_chat_connector_flutter/web_socket/notification.dart'
     as rocket_notification;
+import 'package:synchronized/synchronized.dart';
 
 class ImManager extends ChangeNotifier {
   // 工厂模式
@@ -51,6 +54,11 @@ class ImManager extends ChangeNotifier {
   Authentication? _authentication;
 
   List<MsgListener?> _msgListeners = <MsgListener?>[];
+
+  // 已网络加载的头像的key
+  final List _loadedAvatarKeys = [];
+
+  final _lock = new Lock();
 
   @override
   void dispose() {
@@ -156,7 +164,7 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 获取文件数据
-  Future<Uint8List> getFile(String fileUri, {String? fileName}) async {
+  Future<Uint8List?> getFile(String fileUri, {String? fileName}) async {
     fileName = fileName ?? ImUtil.md5FileName(fileUri);
     Uint8List? uList = await ImUtil.readFileFromCache(fileName);
     if (uList == null) {
@@ -165,6 +173,101 @@ class ImManager extends ChangeNotifier {
       ImUtil.writeFileToCache(fileName, uList);
     }
     return uList;
+  }
+
+  /// 设置头像文件
+  Future<String> setAvatarWithImageFile(String imageFileName) async {
+    String str = await UserService(_rocketHttpService)
+        .setAvatarWithImageFile(imageFileName, _authentication!);
+    return str;
+  }
+
+  /// 设置头像url
+  Future<String> setAvatarWithImageUrl(String imageUrl) async {
+    String str = await UserService(_rocketHttpService)
+        .setAvatarWithImageUrl(imageUrl, _authentication!);
+    return str;
+  }
+
+  /// 通过uid获取头像
+  Future<Avatar?> getAvatarWithUid(String? userId) async {
+    if (userId == null) return null;
+    Uint8List? uList;
+    if (_loadedAvatarKeys.contains(userId)) {
+      uList = await ImUtil.readFileFromCache(userId);
+    }
+    if (uList == null) {
+      // 确保只有一个线程可以访问该代码块
+      await _lock.synchronized(() async {
+        if (_loadedAvatarKeys.contains(userId)) {
+          uList = await ImUtil.readFileFromCache(userId);
+        }
+        if (uList == null) {
+          uList = await UserService(_rocketHttpService)
+              .getAvatarWithUid(userId, _authentication!);
+          if (!_loadedAvatarKeys.contains(userId)) {
+            _loadedAvatarKeys.add(userId);
+          }
+          await ImUtil.writeFileToCache(userId, uList);
+        }
+      });
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList!);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  /// 通过用户名获取头像
+  Future<Avatar?> getAvatarWithUsername(String? username) async {
+    if (username == null) return null;
+    Uint8List? uList;
+    if (_loadedAvatarKeys.contains(username)) {
+      uList = await ImUtil.readFileFromCache(username);
+    }
+    if (uList == null) {
+      // 确保只有一个线程可以访问该代码块
+      await _lock.synchronized(() async {
+        if (_loadedAvatarKeys.contains(username)) {
+          uList = await ImUtil.readFileFromCache(username);
+        }
+        if (uList == null) {
+          uList = await UserService(_rocketHttpService)
+              .getAvatarWithUsername(username, _authentication!);
+          if (!_loadedAvatarKeys.contains(username)) {
+            _loadedAvatarKeys.add(username);
+          }
+          await ImUtil.writeFileToCache(username, uList);
+        }
+      });
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList!);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  /// 刷新所有头像（调用后，在获取头像时会重新从网络加载）
+  void refreshAllAvatar() {
+    _loadedAvatarKeys.clear();
+  }
+
+  /// 刷新头像（调用后，在获取头像时会重新从网络加载）
+  /// key 是用户id 或 用户名
+  void refreshAvatar(String key) {
+    _loadedAvatarKeys.remove(key);
   }
 
   /// 清除缓存
