@@ -12,6 +12,27 @@ class UserService {
 
   UserService(this._httpService);
 
+  /// 注册用户（频繁调用会失败）
+  Future<User> register(UserNew userNew) async {
+    http.Response response = await _httpService.post(
+      '/api/v1/users.register',
+      jsonEncode(userNew.toRegisterMap()),
+      null,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(body);
+      return User.fromMap(data['user']);
+    }
+    throw RocketChatException(body);
+  }
+
   Future<User> create(UserNew userNew, Authentication authentication) async {
     http.Response response = await _httpService.post(
       '/api/v1/users.create',
@@ -26,7 +47,8 @@ class UserService {
     }
 
     if (response.statusCode == 200) {
-      return User.fromMap(jsonDecode(body));
+      Map data = jsonDecode(body);
+      return User.fromMap(data['user']);
     }
     throw RocketChatException(body);
   }
@@ -46,7 +68,27 @@ class UserService {
     }
 
     if (response.statusCode == 200) {
-      return User.fromMap(jsonDecode(body));
+      Map data = jsonDecode(body);
+      return User.fromMap(data['user']);
+    }
+    throw RocketChatException(body);
+  }
+
+  Future<String> logout(Authentication authentication) async {
+    http.Response response = await _httpService.post(
+      '/api/v1/users.logout',
+      jsonEncode({}),
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      return body;
     }
     throw RocketChatException(body);
   }
@@ -99,7 +141,6 @@ class UserService {
     if (response.statusCode == 200) {
       return response.bodyBytes;
     } else {
-      String body = response.body;
       return null;
     }
   }

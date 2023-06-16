@@ -11,7 +11,14 @@ class RoomNewResponse {
 
   RoomNewResponse.fromMap(Map<String, dynamic>? json) {
     if (json != null) {
-      room = json['room'] != null ? Room.fromMap(json['channel']) : null;
+      if (json['room'] != null) {
+        room = Room.fromMap(json['room']);
+      } else if (json['channel'] != null) {
+        room = Room.fromMap(json['channel']);
+      } else {
+        room = null;
+      }
+      room = json['room'] != null ? Room.fromMap(json['room']) : null;
       success = json['success'];
     }
   }

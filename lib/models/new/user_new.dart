@@ -39,6 +39,25 @@ class UserNew {
     return map;
   }
 
+  Map<String, dynamic> toRegisterMap() {
+    Map<String, dynamic> map = {};
+
+    if (name != null) {
+      map['name'] = name;
+    }
+    if (email != null) {
+      map['email'] = email;
+    }
+    if (password != null) {
+      map['pass'] = password;
+    }
+    if (username != null) {
+      map['username'] = username;
+    }
+
+    return map;
+  }
+
   @override
   String toString() {
     return 'UserNew{name: $name, email: $email, password: $password, username: $username}';

@@ -5,7 +5,11 @@ import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_history_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/message.dart';
+import 'package:rocket_chat_connector_flutter/models/new/channel_new.dart';
+import 'package:rocket_chat_connector_flutter/models/new/room_new.dart';
+import 'package:rocket_chat_connector_flutter/models/new/user_new.dart';
 import 'package:rocket_chat_connector_flutter/models/response/message_new_response.dart';
+import 'package:rocket_chat_connector_flutter/models/response/room_new_response.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
 import 'package:rocket_chat_connector_flutter/models/room_messages.dart';
@@ -48,8 +52,8 @@ class ImManager extends ChangeNotifier {
 
   bool get isLogin => _authentication != null;
 
-  late final String _webSocketUrl;
-  late final rocket_http_service.HttpService _rocketHttpService;
+  late String _webSocketUrl;
+  late rocket_http_service.HttpService _rocketHttpService;
 
   Authentication? _authentication;
 
@@ -75,13 +79,57 @@ class ImManager extends ChangeNotifier {
     _rocketHttpService = rocket_http_service.HttpService(Uri.parse(serverUrl));
   }
 
+  /// 注册用户（频繁调用会失败）
+  Future<User> register(UserNew userNew) async {
+    User user = await UserService(_rocketHttpService).register(userNew);
+    return user;
+  }
+
+  /// 创建用户
+  Future<User?> create(UserNew userNew, Authentication authentication) async {
+    if (_authentication == null) return null;
+    User user =
+        await UserService(_rocketHttpService).create(userNew, _authentication!);
+    return user;
+  }
+
+  /// 更新用户信息
+  Future<User?> updateUser(String userId, UserNew userNew) async {
+    if (_authentication == null) return null;
+    User user = await UserService(_rocketHttpService)
+        .updateUser(userId, userNew, _authentication!);
+    return user;
+  }
+
   /// 登录rock.chat
   Future<void> login(String username, String password) async {
     _authentication = await AuthenticationService(_rocketHttpService)
         .login(username, password);
     me = _authentication!.data?.me;
     channelManager.setChannel(_webSocketUrl, _authentication!, _onChannelEvent);
-    notifyListeners();
+  }
+
+  /// 登出rock.chat
+  Future<void> logout() async {
+    if (_authentication == null) return null;
+    await UserService(_rocketHttpService).logout(_authentication!);
+    channelManager.unsetChannel();
+  }
+
+  /// 创建channel
+  Future<Room?> createChannel(String name) async {
+    if (_authentication == null) return null;
+    RoomNewResponse response = await ChannelService(_rocketHttpService)
+        .create(ChannelNew(name: name), _authentication!);
+    return response.room;
+  }
+
+  /// 创建room
+  Future<Room?> createRoom(String username) async {
+    if (_authentication == null) return null;
+    RoomNewResponse response = await RoomService(_rocketHttpService)
+        .create(RoomNew(username: username), _authentication!);
+    return response.room;
   }
 
   /// 发送文本消息
@@ -374,7 +422,7 @@ class ChannelManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    _webSocketChannel?.sink.close();
+    unsetChannel();
     super.dispose();
   }
 
@@ -398,6 +446,10 @@ class ChannelManager extends ChangeNotifier {
       }
       onChannelEvent.call(event);
     });
+  }
+
+  unsetChannel() {
+    _webSocketChannel?.sink.close();
   }
 
   sendTextMsg(String text, Room room) {

@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:example/chat_room_page.dart';
+import 'package:example/create_room_page.dart';
+import 'package:example/login_page.dart';
 import 'package:example/utils.dart';
 import 'package:flt_hc_hud/flt_hc_hud.dart';
 import 'package:flutter/cupertino.dart';
@@ -29,6 +31,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
+    ImManager().removeMsgListener(_msgListener);
     super.dispose();
   }
 
@@ -129,7 +132,30 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.only(right: 10),
               child: Icon(Icons.image),
             ),
-          )
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => HCHud(child: CreateRoomPage()),
+                ),
+              );
+            },
+            child: Container(
+              padding: EdgeInsets.only(right: 10),
+              child: Icon(Icons.add),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              _logout();
+            },
+            child: Container(
+              padding: EdgeInsets.only(right: 10),
+              child: Icon(Icons.logout),
+            ),
+          ),
         ],
       ),
       body: Padding(
@@ -258,5 +284,18 @@ class _MyHomePageState extends State<MyHomePage> {
     String? path = await Utils.pickOneImage(context);
     if (path == null) return;
     await ImManager().setAvatarWithImageFile(path);
+  }
+
+  Future<void> _logout() async {
+    HCHud.of(context)?.showLoading(text: '');
+    try {
+      await ImManager().logout();
+      Navigator.of(context, rootNavigator: true)
+          .pushReplacement(CupertinoPageRoute(
+        builder: (context) => HCHud(child: LoginPage()),
+      ));
+    } catch (e) {
+      HCHud.of(context)?.showErrorAndDismiss(text: '$e');
+    }
   }
 }
