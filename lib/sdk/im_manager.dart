@@ -31,7 +31,6 @@ import 'package:rocket_chat_connector_flutter/services/http_service.dart'
     as rocket_http_service;
 import 'package:rocket_chat_connector_flutter/web_socket/notification.dart'
     as rocket_notification;
-import 'package:synchronized/synchronized.dart';
 
 class ImManager extends ChangeNotifier {
   // 工厂模式
@@ -64,10 +63,6 @@ class ImManager extends ChangeNotifier {
 
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
-
-  final _msgAvatarLock = new Lock();
-
-  final _roomAvatarLock = new Lock();
 
   @override
   void dispose() {
@@ -297,9 +292,14 @@ class ImManager extends ChangeNotifier {
     _loadedAvatarKeys.remove(key);
   }
 
-  /// 清除缓存
-  Future<void> clearCache() async {
+  /// 清除磁盘缓存
+  Future<void> clearDiskCache() async {
     await ImUtil.clearFileCache();
+  }
+
+  /// 清除内存缓存
+  void clearMemoryCache() {
+    imageManager.clear();
   }
 
   /// 添加消息监听者

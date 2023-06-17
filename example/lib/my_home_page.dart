@@ -32,6 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     ImManager().removeMsgListener(_msgListener);
+    ImManager().clearMemoryCache();
     super.dispose();
   }
 
