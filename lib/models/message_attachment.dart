@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:rocket_chat_connector_flutter/models/message_attachment_field.dart';
+
 class MessageAttachment {
   DateTime? ts;
   String? title; // 文件名
@@ -16,6 +18,7 @@ class MessageAttachment {
   String? type; // file
   String? description; //
   String? format; // TXT // 文件格式(图片和视频没有这个字段)
+  List<MessageAttachmentField>? fields;
 
   MessageAttachment({
     this.ts,
@@ -33,6 +36,7 @@ class MessageAttachment {
     this.type,
     this.description,
     this.format,
+    this.fields,
   });
 
   MessageAttachment.fromMap(Map<String, dynamic>? json) {
@@ -55,6 +59,9 @@ class MessageAttachment {
       type = json['type'];
       description = json['description'];
       format = json['format'];
+      fields = (json['fields'] as List?)
+          ?.map((e) => MessageAttachmentField.fromMap(e))
+          .toList();
     }
   }
 
@@ -79,11 +86,12 @@ class MessageAttachment {
         'type': type,
         'description': description,
         'format': format,
+        'fields': fields?.map((e) => e.toMap()).toList(),
       };
 
   @override
   String toString() {
-    return 'MessageAttachment{ts: $ts, title: $title, title_link: $titleLink, title_link_download: $titleLinkDownload, image_dimensions: $imageDimensions, image_preview: $imagePreview, image_url: $imageUrl, image_type: $imageType, image_size: $imageSize, video_url: $videoUrl, video_type: $videoType, video_size: $videoSize, type: $type, description: $description, format: $format}';
+    return 'MessageAttachment{ts: $ts, title: $title, title_link: $titleLink, title_link_download: $titleLinkDownload, image_dimensions: $imageDimensions, image_preview: $imagePreview, image_url: $imageUrl, image_type: $imageType, image_size: $imageSize, video_url: $videoUrl, video_type: $videoType, video_size: $videoSize, type: $type, description: $description, format: $format, fields: $fields}';
   }
 
   @override
@@ -105,7 +113,8 @@ class MessageAttachment {
           videoSize == other.videoSize &&
           type == other.type &&
           description == other.description &&
-          format == other.format;
+          format == other.format &&
+          fields == other.fields;
 
   @override
   int get hashCode =>
@@ -123,5 +132,6 @@ class MessageAttachment {
       videoSize.hashCode ^
       type.hashCode ^
       description.hashCode ^
-      format.hashCode;
+      format.hashCode ^
+      fields.hashCode;
 }

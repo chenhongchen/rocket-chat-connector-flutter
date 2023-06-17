@@ -6,6 +6,7 @@ import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filte
 import 'package:rocket_chat_connector_flutter/models/filters/room_history_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/new/channel_new.dart';
+import 'package:rocket_chat_connector_flutter/models/new/message_new.dart';
 import 'package:rocket_chat_connector_flutter/models/new/room_new.dart';
 import 'package:rocket_chat_connector_flutter/models/new/user_new.dart';
 import 'package:rocket_chat_connector_flutter/models/response/message_new_response.dart';
@@ -147,6 +148,19 @@ class ImManager extends ChangeNotifier {
     for (MsgListener? msgListener in _msgListeners) {
       msgListener?.call(message);
       channelManager.notify();
+    }
+  }
+
+  /// 发送自定义消息(自定义字段路径MessageNew.attachments.fields)
+  Future<void> postMessage(MessageNew message) async {
+    if (_authentication == null) return;
+    MessageNewResponse response = await MessageService(_rocketHttpService)
+        .postMessage(message, _authentication!);
+    if (response.message != null) {
+      for (MsgListener? msgListener in _msgListeners) {
+        msgListener?.call(response.message!);
+        channelManager.notify();
+      }
     }
   }
 
