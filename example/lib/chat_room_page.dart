@@ -5,6 +5,7 @@ import 'package:example/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:rocket_chat_connector_flutter/models/message.dart';
 import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/room.dart';
@@ -84,18 +85,29 @@ class _ChatRoomPage extends State<ChatRoomPage> {
           Widget? child,
         ) {
           return Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: EdgeInsets.only(
+              left: 15,
+              right: 15,
+              top: 0,
+              bottom: MediaQuery.of(context).padding.bottom,
+            ),
             child: Column(
               children: [
                 Expanded(
-                    child: ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  itemCount: value.messages.length,
-                  itemBuilder: (context, index) {
-                    Message message = value.messages[index];
-                    return _buildCell(message);
-                  },
+                    child: SmartRefresher(
+                  onLoading: _viewModel.loadMessage,
+                  enablePullDown: false,
+                  enablePullUp: true,
+                  controller: _viewModel.controller,
+                  child: ListView.builder(
+                    reverse: true,
+                    controller: _scrollController,
+                    itemCount: value.messages.length,
+                    itemBuilder: (context, index) {
+                      Message message = value.messages[index];
+                      return _buildCell(message);
+                    },
+                  ), // scroll view
                 )),
                 Form(
                   child: TextFormField(
@@ -139,7 +151,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
               height: height,
               color: Colors.grey.withOpacity(0.5),
               child: FutureBuilder(
-                future: ImManager().getFile(attachment.imageUrl!),
+                future: ImManager().getImage(attachment.imageUrl!),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
                   Uint8List bytes = snapshot.data is Uint8List
                       ? snapshot.data
@@ -164,8 +176,8 @@ class _ChatRoomPage extends State<ChatRoomPage> {
         }
         content = Container(
           width: contentWidth,
-          height: 70,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 attachment.description ?? '',

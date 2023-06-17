@@ -1,0 +1,219 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:rocket_chat_connector_flutter/models/authentication.dart';
+import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
+import 'package:rocket_chat_connector_flutter/sdk/im_util.dart';
+import 'package:rocket_chat_connector_flutter/services/message_service.dart';
+import 'package:rocket_chat_connector_flutter/services/http_service.dart'
+    as rocket_http_service;
+import 'package:rocket_chat_connector_flutter/services/room_service.dart';
+import 'package:rocket_chat_connector_flutter/services/user_service.dart';
+import 'package:synchronized/synchronized.dart';
+
+class ImageManager {
+  final Map<String, _ImageMemory> _imageMemories = <String, _ImageMemory>{};
+  final int _cacheMaxMemoryNum = 30;
+
+  final Lock _imageLock = new Lock();
+  final Lock _curIndexLock = new Lock();
+  final Lock _avatarLock = new Lock();
+  final Lock _roomAvatarLock = new Lock();
+
+  int _curIndex = 0;
+
+  // 已网络加载的头像的key
+  final List _loadedAvatarKeys = [];
+
+  Future<Uint8List?> getImage(
+      String fileUri,
+      rocket_http_service.HttpService _rocketHttpService,
+      Authentication _authentication,
+      {String? fileName}) async {
+    fileName = fileName ?? ImUtil.md5FileName(fileUri);
+    Uint8List? uList = _imageMemories[fileName]?.image;
+    if (uList == null) {
+      uList = await ImUtil.readFileFromCache(fileName);
+    }
+    if (uList != null) {
+      _addImageMemories(fileName: fileName, image: uList);
+    } else {
+      uList = await MessageService(_rocketHttpService)
+          .getFile(fileUri, _authentication);
+      _addImageMemories(fileName: fileName, image: uList);
+      ImUtil.writeFileToCache(fileName, uList);
+    }
+    print('getImage :: ${_imageMemories.length}');
+    return uList;
+  }
+
+  void clear() {
+    _imageMemories.clear();
+  }
+
+  /// 通过uid获取头像
+  Future<Avatar?> getAvatarWithUid(
+    String? userId,
+    rocket_http_service.HttpService _rocketHttpService,
+    Authentication _authentication,
+  ) async {
+    if (userId == null) return null;
+    Uint8List? uList = _imageMemories[userId]?.image;
+    if (uList == null && _loadedAvatarKeys.contains(userId)) {
+      uList = await ImUtil.readFileFromCache(userId);
+      _addImageMemories(fileName: userId, image: uList);
+    }
+    if (uList == null) {
+      // 确保只有一个线程可以访问该代码块
+      await _avatarLock.synchronized(() async {
+        if (_loadedAvatarKeys.contains(userId)) {
+          uList = await ImUtil.readFileFromCache(userId);
+          _addImageMemories(fileName: userId, image: uList);
+        }
+        if (uList == null) {
+          uList = await UserService(_rocketHttpService)
+              .getAvatarWithUid(userId, _authentication);
+          _addImageMemories(fileName: userId, image: uList);
+          if (!_loadedAvatarKeys.contains(userId)) {
+            _loadedAvatarKeys.add(userId);
+          }
+          await ImUtil.writeFileToCache(userId, uList);
+        }
+      });
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList!);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  /// 通过用户名获取头像
+  Future<Avatar?> getAvatarWithUsername(
+    String? username,
+    rocket_http_service.HttpService _rocketHttpService,
+    Authentication _authentication,
+  ) async {
+    if (username == null) return null;
+    Uint8List? uList = _imageMemories[username]?.image;
+    if (uList == null && _loadedAvatarKeys.contains(username)) {
+      uList = await ImUtil.readFileFromCache(username);
+      _addImageMemories(fileName: username, image: uList);
+    }
+    if (uList == null) {
+      // 确保只有一个线程可以访问该代码块
+      await _avatarLock.synchronized(() async {
+        if (_loadedAvatarKeys.contains(username)) {
+          uList = await ImUtil.readFileFromCache(username);
+          _addImageMemories(fileName: username, image: uList);
+        }
+        if (uList == null) {
+          uList = await UserService(_rocketHttpService)
+              .getAvatarWithUsername(username, _authentication);
+          _addImageMemories(fileName: username, image: uList);
+          if (!_loadedAvatarKeys.contains(username)) {
+            _loadedAvatarKeys.add(username);
+          }
+          await ImUtil.writeFileToCache(username, uList);
+        }
+      });
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList!);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  /// 获取room 头像
+  /// rid 和 username 不能全为空
+  Future<Avatar?> getRoomAvatar(
+    String? rid,
+    String? username,
+    rocket_http_service.HttpService _rocketHttpService,
+    Authentication _authentication,
+  ) async {
+    if (rid == null && username == null) return null;
+    String key = 'room_' + (rid ?? username)!;
+    Uint8List? uList = _imageMemories[key]?.image;
+    if (_loadedAvatarKeys.contains(key)) {
+      uList = await ImUtil.readFileFromCache(key);
+      _addImageMemories(fileName: key, image: uList);
+    }
+    if (uList == null) {
+      // 确保只有一个线程可以访问该代码块
+      await _roomAvatarLock.synchronized(() async {
+        if (_loadedAvatarKeys.contains(key)) {
+          uList = await ImUtil.readFileFromCache(key);
+          _addImageMemories(fileName: key, image: uList);
+        }
+        if (uList == null) {
+          uList = await RoomService(_rocketHttpService)
+              .getAvatar(rid, username, _authentication);
+          _addImageMemories(fileName: key, image: uList);
+          if (!_loadedAvatarKeys.contains(key)) {
+            _loadedAvatarKeys.add(key);
+          }
+          await ImUtil.writeFileToCache(key, uList);
+        }
+      });
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList!);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  _addImageMemories({required String fileName, Uint8List? image}) async {
+    if (image == null) return;
+    await _curIndexAdd();
+    _imageMemories[fileName] = _ImageMemory(image: image, index: _curIndex);
+    await _freeUpMemory();
+  }
+
+  _curIndexAdd() async {
+    await _curIndexLock.synchronized(() async {
+      _curIndex++;
+    });
+  }
+
+  _freeUpMemory() async {
+    if (_imageMemories.length <= _cacheMaxMemoryNum) return;
+    // 确保只有一个线程可以访问该代码块
+    await _imageLock.synchronized(() async {
+      if (_imageMemories.length <= _cacheMaxMemoryNum) return;
+      // 按index升序排序
+      List<MapEntry<String, _ImageMemory>> list =
+          _imageMemories.entries.toList();
+      list.sort((a, b) => a.value.index.compareTo(b.value.index));
+      int le = list.length - _cacheMaxMemoryNum;
+      if (le > 0) {
+        for (int i = 0; i < le; i++) {
+          _imageMemories.remove(list[i].key);
+        }
+      }
+    });
+  }
+}
+
+class _ImageMemory {
+  Uint8List image;
+  int index;
+
+  _ImageMemory({required this.image, required this.index});
+}
