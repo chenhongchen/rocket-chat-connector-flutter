@@ -150,11 +150,12 @@ class _ChatRoomPage extends State<ChatRoomPage> {
             height: height,
             color: Colors.grey.withOpacity(0.5),
             child: FutureBuilder(
-              future: ImManager().getImage(attachment.imageUrl!),
+              future: ImManager().getImage(attachment),
               builder: (BuildContext context, AsyncSnapshot snapshot) {
                 Uint8List bytes = snapshot.data is Uint8List
                     ? snapshot.data
-                    : base64Decode(attachment.imagePreview!);
+                    : attachment.thumbnail;
+                if (snapshot.data is! Uint8List) return Container();
                 return Image.memory(
                   bytes,
                   width: contentWidth,

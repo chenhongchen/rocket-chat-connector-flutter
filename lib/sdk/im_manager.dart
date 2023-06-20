@@ -5,6 +5,7 @@ import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_counters_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/room_history_filter.dart';
 import 'package:rocket_chat_connector_flutter/models/message.dart';
+import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/new/channel_new.dart';
 import 'package:rocket_chat_connector_flutter/models/new/message_new.dart';
 import 'package:rocket_chat_connector_flutter/models/new/room_new.dart';
@@ -226,16 +227,18 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 获取图片数据
-  Future<Uint8List?> getImage(String fileUri, {String? fileName}) async {
+  Future<Uint8List?> getImage(MessageAttachment attachment) async {
     if (_authentication == null) return null;
     Uint8List? uList = await imageManager.getImage(
-        fileUri, _rocketHttpService, _authentication!);
+        attachment, _rocketHttpService, _authentication!);
     return uList;
   }
 
   /// 获取文件数据
-  Future<Uint8List?> getFile(String fileUri, {String? fileName}) async {
-    fileName = fileName ?? ImUtil.md5FileName(fileUri);
+  Future<Uint8List?> getFile(MessageAttachment attachment) async {
+    String fileUri = attachment.titleLink ?? '';
+    if (fileUri.isEmpty) return null;
+    String fileName = ImUtil.md5FileName(fileUri);
     Uint8List? uList = await ImUtil.readFileFromCache(fileName);
     if (uList == null) {
       uList = await MessageService(_rocketHttpService)

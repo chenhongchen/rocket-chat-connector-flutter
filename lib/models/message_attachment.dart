@@ -1,5 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
-
 import 'package:rocket_chat_connector_flutter/models/message_attachment_field.dart';
 
 class MessageAttachment {
@@ -20,6 +21,9 @@ class MessageAttachment {
   String? format; // TXT // 文件格式(图片和视频没有这个字段)
   List<MessageAttachmentField>? fields;
 
+  // 自定义
+  Uint8List? thumbnail;
+
   MessageAttachment({
     this.ts,
     this.title,
@@ -37,7 +41,11 @@ class MessageAttachment {
     this.description,
     this.format,
     this.fields,
-  });
+  }) {
+    if (imagePreview != null) {
+      thumbnail = base64Decode(imagePreview!);
+    }
+  }
 
   MessageAttachment.fromMap(Map<String, dynamic>? json) {
     if (json != null) {
@@ -62,6 +70,10 @@ class MessageAttachment {
       fields = (json['fields'] as List?)
           ?.map((e) => MessageAttachmentField.fromMap(e))
           .toList();
+
+      if (imagePreview != null) {
+        thumbnail = base64Decode(imagePreview!);
+      }
     }
   }
 

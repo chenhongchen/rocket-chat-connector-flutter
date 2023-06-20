@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
+import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
 import 'package:rocket_chat_connector_flutter/sdk/im_util.dart';
 import 'package:rocket_chat_connector_flutter/services/message_service.dart';
@@ -14,22 +15,20 @@ class ImageManager {
   final Map<String, _ImageMemory> _imageMemories = <String, _ImageMemory>{};
   final int _cacheMaxMemoryNum = 30;
 
-  final Lock _imageLock = new Lock();
-  final Lock _curIndexLock = new Lock();
-  final Lock _avatarLock = new Lock();
+  final Lock _freeUpMemoryLock = new Lock();
+  final Lock _userAvatarLock = new Lock();
   final Lock _roomAvatarLock = new Lock();
-
-  int _curIndex = 0;
 
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
 
   Future<Uint8List?> getImage(
-      String fileUri,
+      MessageAttachment attachment,
       rocket_http_service.HttpService _rocketHttpService,
-      Authentication _authentication,
-      {String? fileName}) async {
-    fileName = fileName ?? ImUtil.md5FileName(fileUri);
+      Authentication _authentication) async {
+    String fileUri = attachment.imageUrl ?? '';
+    if (fileUri.isEmpty) return null;
+    String fileName = ImUtil.md5FileName(fileUri);
     Uint8List? uList = _imageMemories[fileName]?.image;
     if (uList == null) {
       uList = await ImUtil.readFileFromCache(fileName);
@@ -42,7 +41,6 @@ class ImageManager {
       _addImageMemories(fileName: fileName, image: uList);
       ImUtil.writeFileToCache(fileName, uList);
     }
-    print('getImage :: ${_imageMemories.length}');
     return uList;
   }
 
@@ -64,7 +62,7 @@ class ImageManager {
     }
     if (uList == null) {
       // 确保只有一个线程可以访问该代码块
-      await _avatarLock.synchronized(() async {
+      await _userAvatarLock.synchronized(() async {
         if (_loadedAvatarKeys.contains(userId)) {
           uList = await ImUtil.readFileFromCache(userId);
           _addImageMemories(fileName: userId, image: uList);
@@ -106,7 +104,7 @@ class ImageManager {
     }
     if (uList == null) {
       // 确保只有一个线程可以访问该代码块
-      await _avatarLock.synchronized(() async {
+      await _userAvatarLock.synchronized(() async {
         if (_loadedAvatarKeys.contains(username)) {
           uList = await ImUtil.readFileFromCache(username);
           _addImageMemories(fileName: username, image: uList);
@@ -179,28 +177,21 @@ class ImageManager {
     return avatar;
   }
 
-  _addImageMemories({required String fileName, Uint8List? image}) async {
+  _addImageMemories({required String fileName, Uint8List? image}) {
     if (image == null) return;
-    await _curIndexAdd();
-    _imageMemories[fileName] = _ImageMemory(image: image, index: _curIndex);
-    await _freeUpMemory();
-  }
-
-  _curIndexAdd() async {
-    await _curIndexLock.synchronized(() async {
-      _curIndex++;
-    });
+    _imageMemories[fileName] = _ImageMemory(image: image);
+    _freeUpMemory();
   }
 
   _freeUpMemory() async {
     if (_imageMemories.length <= _cacheMaxMemoryNum) return;
     // 确保只有一个线程可以访问该代码块
-    await _imageLock.synchronized(() async {
+    await _freeUpMemoryLock.synchronized(() async {
       if (_imageMemories.length <= _cacheMaxMemoryNum) return;
       // 按index升序排序
       List<MapEntry<String, _ImageMemory>> list =
           _imageMemories.entries.toList();
-      list.sort((a, b) => a.value.index.compareTo(b.value.index));
+      list.sort((a, b) => a.value.time.compareTo(b.value.time));
       int le = list.length - _cacheMaxMemoryNum;
       if (le > 0) {
         for (int i = 0; i < le; i++) {
@@ -212,8 +203,8 @@ class ImageManager {
 }
 
 class _ImageMemory {
-  Uint8List image;
-  int index;
+  final Uint8List image;
+  final int time = DateTime.now().microsecondsSinceEpoch;
 
-  _ImageMemory({required this.image, required this.index});
+  _ImageMemory({required this.image});
 }
