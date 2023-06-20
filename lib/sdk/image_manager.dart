@@ -15,9 +15,7 @@ class ImageManager {
   final Map<String, _ImageMemory> _imageMemories = <String, _ImageMemory>{};
   final int _cacheMaxMemoryNum = 30;
 
-  final Lock _freeUpMemoryLock = new Lock();
-  final Lock _userAvatarLock = new Lock();
-  final Lock _roomAvatarLock = new Lock();
+  final Lock _freeUpMemoryLock = Lock();
 
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
@@ -61,28 +59,19 @@ class ImageManager {
       _addImageMemories(fileName: userId, image: uList);
     }
     if (uList == null) {
-      // 确保只有一个线程可以访问该代码块
-      await _userAvatarLock.synchronized(() async {
-        if (_loadedAvatarKeys.contains(userId)) {
-          uList = await ImUtil.readFileFromCache(userId);
-          _addImageMemories(fileName: userId, image: uList);
-        }
-        if (uList == null) {
-          uList = await UserService(_rocketHttpService)
-              .getAvatarWithUid(userId, _authentication);
-          _addImageMemories(fileName: userId, image: uList);
-          if (!_loadedAvatarKeys.contains(userId)) {
-            _loadedAvatarKeys.add(userId);
-          }
-          await ImUtil.writeFileToCache(userId, uList);
-        }
-      });
+      uList = await UserService(_rocketHttpService)
+          .getAvatarWithUid(userId, _authentication);
+      _addImageMemories(fileName: userId, image: uList);
+      if (!_loadedAvatarKeys.contains(userId)) {
+        _loadedAvatarKeys.add(userId);
+      }
+      await ImUtil.writeFileToCache(userId, uList);
     }
     Avatar? avatar;
     if (uList != null) {
       avatar = Avatar();
       try {
-        avatar.svg = Utf8Decoder().convert(uList!);
+        avatar.svg = Utf8Decoder().convert(uList);
       } catch (e) {
         avatar.image = uList;
       }
@@ -103,28 +92,19 @@ class ImageManager {
       _addImageMemories(fileName: username, image: uList);
     }
     if (uList == null) {
-      // 确保只有一个线程可以访问该代码块
-      await _userAvatarLock.synchronized(() async {
-        if (_loadedAvatarKeys.contains(username)) {
-          uList = await ImUtil.readFileFromCache(username);
-          _addImageMemories(fileName: username, image: uList);
-        }
-        if (uList == null) {
-          uList = await UserService(_rocketHttpService)
-              .getAvatarWithUsername(username, _authentication);
-          _addImageMemories(fileName: username, image: uList);
-          if (!_loadedAvatarKeys.contains(username)) {
-            _loadedAvatarKeys.add(username);
-          }
-          await ImUtil.writeFileToCache(username, uList);
-        }
-      });
+      uList = await UserService(_rocketHttpService)
+          .getAvatarWithUsername(username, _authentication);
+      _addImageMemories(fileName: username, image: uList);
+      if (!_loadedAvatarKeys.contains(username)) {
+        _loadedAvatarKeys.add(username);
+      }
+      await ImUtil.writeFileToCache(username, uList);
     }
     Avatar? avatar;
     if (uList != null) {
       avatar = Avatar();
       try {
-        avatar.svg = Utf8Decoder().convert(uList!);
+        avatar.svg = Utf8Decoder().convert(uList);
       } catch (e) {
         avatar.image = uList;
       }
@@ -147,29 +127,29 @@ class ImageManager {
       uList = await ImUtil.readFileFromCache(key);
       _addImageMemories(fileName: key, image: uList);
     }
+    // if (uList == null) {
+    //   // 确保只有一个线程可以访问该代码块
+    //   await _roomAvatarLock.synchronized(() async {
+    //     if (_loadedAvatarKeys.contains(key)) {
+    //       uList = await ImUtil.readFileFromCache(key);
+    //       _addImageMemories(fileName: key, image: uList);
+    //     }
     if (uList == null) {
-      // 确保只有一个线程可以访问该代码块
-      await _roomAvatarLock.synchronized(() async {
-        if (_loadedAvatarKeys.contains(key)) {
-          uList = await ImUtil.readFileFromCache(key);
-          _addImageMemories(fileName: key, image: uList);
-        }
-        if (uList == null) {
-          uList = await RoomService(_rocketHttpService)
-              .getAvatar(rid, username, _authentication);
-          _addImageMemories(fileName: key, image: uList);
-          if (!_loadedAvatarKeys.contains(key)) {
-            _loadedAvatarKeys.add(key);
-          }
-          await ImUtil.writeFileToCache(key, uList);
-        }
-      });
+      uList = await RoomService(_rocketHttpService)
+          .getAvatar(rid, username, _authentication);
+      _addImageMemories(fileName: key, image: uList);
+      if (!_loadedAvatarKeys.contains(key)) {
+        _loadedAvatarKeys.add(key);
+      }
+      await ImUtil.writeFileToCache(key, uList);
     }
+    //   });
+    // }
     Avatar? avatar;
     if (uList != null) {
       avatar = Avatar();
       try {
-        avatar.svg = Utf8Decoder().convert(uList!);
+        avatar.svg = Utf8Decoder().convert(uList);
       } catch (e) {
         avatar.image = uList;
       }
