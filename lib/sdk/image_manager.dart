@@ -143,7 +143,7 @@ class ImageManager {
     if (rid == null && username == null) return null;
     String key = 'room_' + (rid ?? username)!;
     Uint8List? uList = _imageMemories[key]?.image;
-    if (_loadedAvatarKeys.contains(key)) {
+    if (uList == null && _loadedAvatarKeys.contains(key)) {
       uList = await ImUtil.readFileFromCache(key);
       _addImageMemories(fileName: key, image: uList);
     }
