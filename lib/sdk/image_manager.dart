@@ -127,13 +127,6 @@ class ImageManager {
       uList = await ImUtil.readFileFromCache(key);
       _addImageMemories(fileName: key, image: uList);
     }
-    // if (uList == null) {
-    //   // 确保只有一个线程可以访问该代码块
-    //   await _roomAvatarLock.synchronized(() async {
-    //     if (_loadedAvatarKeys.contains(key)) {
-    //       uList = await ImUtil.readFileFromCache(key);
-    //       _addImageMemories(fileName: key, image: uList);
-    //     }
     if (uList == null) {
       uList = await RoomService(_rocketHttpService)
           .getAvatar(rid, username, _authentication);
@@ -143,8 +136,6 @@ class ImageManager {
       }
       await ImUtil.writeFileToCache(key, uList);
     }
-    //   });
-    // }
     Avatar? avatar;
     if (uList != null) {
       avatar = Avatar();
