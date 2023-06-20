@@ -129,68 +129,68 @@ class _ChatRoomPage extends State<ChatRoomPage> {
     double avatarW = 36;
     double padding = 5;
     double contentWidth = screenW * 0.45;
-    if (message.attachments != null && message.attachments!.isNotEmpty) {
+    // 图片消息
+    if (message.msgTyp == MessageTyp.IMAGE) {
       MessageAttachment attachment = message.attachments!.first;
-      // 图片消息
-      if (attachment.imageUrl != null) {
-        double height = contentWidth *
-            (attachment.imageDimensions?.height ?? 1) /
-            (attachment.imageDimensions?.width ?? 1);
-        content = Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: message.user?.id == ImManager().me?.id
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+      double height = contentWidth *
+          (attachment.imageDimensions?.height ?? 1) /
+          (attachment.imageDimensions?.width ?? 1);
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: message.user?.id == ImManager().me?.id
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Text(
+            attachment.description ?? '',
+            style: TextStyle(fontSize: 16, color: Colors.black),
+          ),
+          Container(
+            width: contentWidth,
+            height: height,
+            color: Colors.grey.withOpacity(0.5),
+            child: FutureBuilder(
+              future: ImManager().getImage(attachment.imageUrl!),
+              builder: (BuildContext context, AsyncSnapshot snapshot) {
+                Uint8List bytes = snapshot.data is Uint8List
+                    ? snapshot.data
+                    : base64Decode(attachment.imagePreview!);
+                return Image.memory(
+                  bytes,
+                  width: contentWidth,
+                  height: height,
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
+          )
+        ],
+      );
+    }
+    // 视频或一般文件
+    else if (message.msgTyp == MessageTyp.VIDEO ||
+        message.msgTyp == MessageTyp.File) {
+      MessageAttachment attachment = message.attachments!.first;
+      String text = '文件';
+      if (message.msgTyp == MessageTyp.VIDEO) {
+        text = '视频';
+      }
+      content = Container(
+        width: contentWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               attachment.description ?? '',
               style: TextStyle(fontSize: 16, color: Colors.black),
             ),
-            Container(
-              width: contentWidth,
-              height: height,
-              color: Colors.grey.withOpacity(0.5),
-              child: FutureBuilder(
-                future: ImManager().getImage(attachment.imageUrl!),
-                builder: (BuildContext context, AsyncSnapshot snapshot) {
-                  Uint8List bytes = snapshot.data is Uint8List
-                      ? snapshot.data
-                      : base64Decode(attachment.imagePreview!);
-                  return Image.memory(
-                    bytes,
-                    width: contentWidth,
-                    height: height,
-                    fit: BoxFit.cover,
-                  );
-                },
-              ),
-            )
+            Text(
+              '$text：${attachment.title ?? ''}',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
-        );
-      }
-      // 视频或一般文件
-      else {
-        String text = '文件';
-        if (attachment.videoUrl != null) {
-          text = '视频';
-        }
-        content = Container(
-          width: contentWidth,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                attachment.description ?? '',
-                style: TextStyle(fontSize: 16, color: Colors.black),
-              ),
-              Text(
-                '$text：${attachment.title ?? ''}',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-        );
-      }
+        ),
+      );
     } else {
       content = Container(
         padding: EdgeInsets.all(5),

@@ -4,6 +4,14 @@ import 'package:rocket_chat_connector_flutter/models/mention.dart';
 import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
 
+enum MessageTyp {
+  TEXT,
+  IMAGE,
+  VIDEO,
+  File,
+  Custom,
+}
+
 class Message {
   String? id;
   String? rid;
@@ -15,6 +23,24 @@ class Message {
   List<Mention>? mentions;
   List<String>? channels;
   List<MessageAttachment>? attachments;
+
+  MessageTyp get msgTyp {
+    if (attachments == null || attachments!.isEmpty) {
+      return MessageTyp.TEXT;
+    }
+    MessageAttachment attachment = attachments!.first;
+    if (attachment.imageUrl != null) {
+      return MessageTyp.IMAGE;
+    } else if (attachment.videoUrl != null) {
+      return MessageTyp.VIDEO;
+    } else if (attachment.titleLink != null) {
+      return MessageTyp.File;
+    } else if (attachment.fields != null && attachment.fields!.isNotEmpty) {
+      return MessageTyp.Custom;
+    } else {
+      return MessageTyp.TEXT;
+    }
+  }
 
   Message({
     this.id,
