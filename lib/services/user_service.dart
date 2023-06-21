@@ -215,4 +215,48 @@ class UserService {
     }
     throw RocketChatException(body);
   }
+
+  /// 用户id获取用户信息
+  Future<User?> getUserInfoWithUid(
+      String userId, Authentication authentication) async {
+    http.Response response = await _httpService.getWithParams(
+      '/api/v1/users.info',
+      {'userId': userId},
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(body);
+      return User.fromMap(data['user']);
+    }
+    throw RocketChatException(body);
+  }
+
+  /// 用户名获取用户信息
+  Future<User?> getUserUserInfoWithUsername(
+      String username, Authentication authentication) async {
+    http.Response response = await _httpService.getWithParams(
+      '/api/v1/users.info',
+      {'username': username},
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(body);
+      return User.fromMap(data['user']);
+    }
+    throw RocketChatException(body);
+  }
 }

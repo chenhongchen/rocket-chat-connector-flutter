@@ -117,6 +117,8 @@ class ImManager extends ChangeNotifier {
     if (_authentication == null) return null;
     await UserService(_rocketHttpService).logout(_authentication!);
     channelManager.unsetChannel();
+    _authentication = null;
+    me = null;
   }
 
   /// 创建channel
@@ -184,9 +186,9 @@ class ImManager extends ChangeNotifier {
   /// 获取历史消息
   Future<List<Message>?> getHistory(RoomHistoryFilter filter) async {
     if (filter.room.isChannel) {
-      return getChannelHistory(filter);
+      return await getChannelHistory(filter);
     } else {
-      return getRoomHistory(filter);
+      return await getRoomHistory(filter);
     }
   }
 
@@ -209,9 +211,9 @@ class ImManager extends ChangeNotifier {
   ///  获取计数
   Future<RoomCounters?> counters(RoomCountersFilter filter) async {
     if (filter.room.isChannel) {
-      return channelCounters(filter);
+      return await channelCounters(filter);
     } else {
-      return roomCounters(filter);
+      return await roomCounters(filter);
     }
   }
 
@@ -277,14 +279,14 @@ class ImManager extends ChangeNotifier {
   /// 通过uid获取头像
   Future<Avatar?> getAvatarWithUid(String? userId) async {
     if (_authentication == null) return null;
-    return imageManager.getAvatarWithUid(
+    return await imageManager.getAvatarWithUid(
         userId, _rocketHttpService, _authentication!);
   }
 
   /// 通过用户名获取头像
   Future<Avatar?> getAvatarWithUsername(String? username) async {
     if (_authentication == null) return null;
-    return imageManager.getAvatarWithUsername(
+    return await imageManager.getAvatarWithUsername(
         username, _rocketHttpService, _authentication!);
   }
 
@@ -292,7 +294,7 @@ class ImManager extends ChangeNotifier {
   /// rid 和 username 不能全为空
   Future<Avatar?> getRoomAvatar(String? rid, String? username) async {
     if (_authentication == null) return null;
-    return imageManager.getRoomAvatar(
+    return await imageManager.getRoomAvatar(
         rid, username, _rocketHttpService, _authentication!);
   }
 
@@ -310,7 +312,7 @@ class ImManager extends ChangeNotifier {
   /// 用户id获取用户状态
   Future<UserStatus?> getUserStatusWithUid(String userId) async {
     if (_authentication == null) return null;
-    return UserService(_rocketHttpService)
+    return await UserService(_rocketHttpService)
         .getUserStatusWithUid(userId, _authentication!);
   }
 
@@ -318,8 +320,22 @@ class ImManager extends ChangeNotifier {
   Future<UserStatus?> getUserStatusWithUsername(
       String username, Authentication authentication) async {
     if (_authentication == null) return null;
-    return UserService(_rocketHttpService)
+    return await UserService(_rocketHttpService)
         .getUserStatusWithUsername(username, _authentication!);
+  }
+
+  /// 用户id获取用户信息
+  Future<User?> getUserInfoWithUid(String userId) async {
+    if (_authentication == null) return null;
+    return await UserService(_rocketHttpService)
+        .getUserInfoWithUid(userId, _authentication!);
+  }
+
+  /// 用户名获取用户信息
+  Future<User?> getUserUserInfoWithUsername(String username) async {
+    if (_authentication == null) return null;
+    return await UserService(_rocketHttpService)
+        .getUserUserInfoWithUsername(username, _authentication!);
   }
 
   /// 清除磁盘缓存
