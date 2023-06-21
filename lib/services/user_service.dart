@@ -6,6 +6,7 @@ import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/new/user_new.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
 import 'package:rocket_chat_connector_flutter/services/http_service.dart';
+import 'package:rocket_chat_connector_flutter/web_socket/notification_fields.dart';
 
 class UserService {
   HttpService _httpService;
@@ -159,5 +160,59 @@ class UserService {
     } else {
       return null;
     }
+  }
+
+  /// 用户id获取用户状态
+  Future<UserStatus?> getUserStatusWithUid(
+      String userId, Authentication authentication) async {
+    http.Response response = await _httpService.getWithParams(
+      '/api/v1/users.getStatus',
+      {'userId': userId},
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(body);
+      String value = data['status'];
+      for (var item in UserStatus.values) {
+        if (item.toString().contains(value)) {
+          return item;
+        }
+      }
+    }
+    throw RocketChatException(body);
+  }
+
+  /// 用户名获取用户状态
+  Future<UserStatus?> getUserStatusWithUsername(
+      String username, Authentication authentication) async {
+    http.Response response = await _httpService.getWithParams(
+      '/api/v1/users.getStatus',
+      {'username': username},
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(body);
+      String value = data['status'];
+      for (var item in UserStatus.values) {
+        if (item.toString().contains(value)) {
+          return item;
+        }
+      }
+    }
+    throw RocketChatException(body);
   }
 }

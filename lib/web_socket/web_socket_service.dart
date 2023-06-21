@@ -68,6 +68,32 @@ class WebSocketService {
     webSocketChannel.sink.add(jsonEncode(msg));
   }
 
+  /// 订阅用户状态
+  void streamNotifyUserStatusSubscribe(
+      WebSocketChannel webSocketChannel, String userId) {
+    _streamNotifyLoggedSubscribe(webSocketChannel, userId, 'user-status');
+  }
+
+  // logged订阅
+  // Events available:
+  // Users:NameChanged
+  // Users:Deleted
+  // updateAvatar
+  // updateEmojiCustom
+  // deleteEmojiCustom
+  // roles-change
+  // user-status
+  void _streamNotifyLoggedSubscribe(
+      WebSocketChannel webSocketChannel, String id, String event) {
+    Map msg = {
+      "msg": "sub",
+      "id": id + "subscription-id",
+      "name": "stream-notify-logged",
+      "params": [event, false]
+    };
+    webSocketChannel.sink.add(jsonEncode(msg));
+  }
+
   void sendMessageOnRoom(
       String message, WebSocketChannel webSocketChannel, Room room) {
     Map msg = {

@@ -15,6 +15,7 @@ import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/models/room_counters.dart';
 import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
 import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
+import 'package:rocket_chat_connector_flutter/web_socket/notification_fields.dart';
 
 class MyHomePage extends StatefulWidget {
   final String title;
@@ -28,10 +29,12 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final List<Room> _rooms = <Room>[];
   final Map<String, RoomCounters?> _roomCountersMap = <String, RoomCounters>{};
+  Map<String, UserStatus> _userStatuses = <String, UserStatus>{};
 
   @override
   void dispose() {
     ImManager().removeMsgListener(_msgListener);
+    ImManager().removeUserStatusListener(_userStatusListener);
     ImManager().clearMemoryCache();
     super.dispose();
   }
@@ -45,6 +48,7 @@ class _MyHomePageState extends State<MyHomePage> {
   _initIm() async {
     _loadRooms();
     ImManager().addMsgListener(_msgListener);
+    ImManager().addUserStatusListener(_userStatusListener);
   }
 
   _loadRooms() async {
@@ -61,6 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {});
     }
     _setUnreadCount();
+    _getUserStatus();
   }
 
   _setUnreadCount() async {
@@ -77,6 +82,19 @@ class _MyHomePageState extends State<MyHomePage> {
     if (room.id != null && room.id!.isNotEmpty == true) {
       _roomCountersMap[room.id!] = roomCounters;
     }
+  }
+
+  _getUserStatus() async {
+    for (Room room in _rooms) {
+      if (room.hisUid != null) {
+        UserStatus? status =
+            await ImManager().getUserStatusWithUid(room.hisUid!);
+        if (status != null) {
+          _userStatuses[room.hisUid!] = status;
+        }
+      }
+    }
+    setState(() {});
   }
 
   _msgListener(Message message) {
@@ -98,6 +116,12 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       _loadRooms();
     }
+  }
+
+  _userStatusListener(UserStatusArgs args) {
+    print('_userStatusListener ${args.toString()}');
+    _userStatuses[args.userId] = args.status;
+    setState(() {});
   }
 
   @override
@@ -268,15 +292,32 @@ class _MyHomePageState extends State<MyHomePage> {
               style: TextStyle(fontSize: 15, color: Colors.white),
             );
           }
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(25),
-            child: Container(
-              width: 50,
-              height: 50,
-              color: Colors.grey,
-              alignment: Alignment.center,
-              child: child,
-            ),
+          return Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  color: Colors.grey,
+                  alignment: Alignment.center,
+                  child: child,
+                ),
+              ),
+              if (_userStatuses[room.hisUid] == UserStatus.online)
+                Positioned(
+                    right: 0,
+                    bottom: 0,
+                    width: 16,
+                    height: 16,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        border: Border.all(width: 1, color: Colors.white),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    )),
+            ],
           );
         });
   }

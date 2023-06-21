@@ -40,6 +40,13 @@ class Room {
 
   bool get isChannel => (name != null && name!.isNotEmpty);
 
+  /// 单聊的对方的uid
+  String? get hisUid {
+    var userIds = List<String>.from(uids ?? []);
+    userIds.remove(ImManager().me?.id ?? '');
+    return userIds.isNotEmpty ? userIds.first : null;
+  }
+
   Room({
     this.id,
     this.name,

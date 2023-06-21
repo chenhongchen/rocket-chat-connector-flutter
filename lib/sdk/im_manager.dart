@@ -25,6 +25,7 @@ import 'package:rocket_chat_connector_flutter/services/message_service.dart';
 import 'package:rocket_chat_connector_flutter/services/room_service.dart';
 import 'package:rocket_chat_connector_flutter/services/user_service.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/notification_args.dart';
+import 'package:rocket_chat_connector_flutter/web_socket/notification_fields.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/notification_type.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/web_socket_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -61,6 +62,7 @@ class ImManager extends ChangeNotifier {
   Authentication? _authentication;
 
   List<MsgListener?> _msgListeners = <MsgListener?>[];
+  List<UserStatusListener?> _userStatusListeners = <UserStatusListener?>[];
 
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
@@ -68,6 +70,7 @@ class ImManager extends ChangeNotifier {
   @override
   void dispose() {
     _msgListeners.clear();
+    _userStatusListeners.clear();
     channelManager.dispose();
     imageManager.clear();
     super.dispose();
@@ -166,7 +169,16 @@ class ImManager extends ChangeNotifier {
   /// 获取房间列表
   Future<List<Room>?> getRooms() async {
     if (_authentication == null) return null;
-    return await RoomService(_rocketHttpService).getRooms(_authentication!);
+    List<Room> rooms =
+        await RoomService(_rocketHttpService).getRooms(_authentication!);
+    // 订阅用户状态
+    for (Room room in rooms) {
+      if (!room.isChannel) {
+        var uids = (room.hisUid != null ? <String>[room.hisUid!] : <String>[]);
+        ImManager().subscribeUsersStatus(uids);
+      }
+    }
+    return rooms;
   }
 
   /// 获取历史消息
@@ -295,6 +307,21 @@ class ImManager extends ChangeNotifier {
     _loadedAvatarKeys.remove(key);
   }
 
+  /// 用户id获取用户状态
+  Future<UserStatus?> getUserStatusWithUid(String userId) async {
+    if (_authentication == null) return null;
+    return UserService(_rocketHttpService)
+        .getUserStatusWithUid(userId, _authentication!);
+  }
+
+  /// 用户名获取用户状态
+  Future<UserStatus?> getUserStatusWithUsername(
+      String username, Authentication authentication) async {
+    if (_authentication == null) return null;
+    return UserService(_rocketHttpService)
+        .getUserStatusWithUsername(username, _authentication!);
+  }
+
   /// 清除磁盘缓存
   Future<void> clearDiskCache() async {
     await ImUtil.clearFileCache();
@@ -315,41 +342,68 @@ class ImManager extends ChangeNotifier {
     _msgListeners.remove(listener);
   }
 
+  /// 添加用户状态监听者
+  void addUserStatusListener(UserStatusListener listener) {
+    _userStatusListeners.add(listener);
+  }
+
+  /// 移除用户状态监听者
+  void removeUserStatusListener(UserStatusListener listener) {
+    _userStatusListeners.remove(listener);
+  }
+
+  void subscribeUsersStatus(List<String> userIds) {
+    channelManager.subscribeUsersStatus(userIds);
+  }
+
   void _onChannelEvent(event) async {
     if (_authentication == null) return;
     var map = jsonDecode('$event');
     rocket_notification.Notification? notification =
         rocket_notification.Notification.fromMap(map);
     print(notification);
-    // 收到的他人发送的消息
-    if (notification.msg == NotificationType.CHANGED) {
-      if (notification.fields?.args == null) return;
-      for (NotificationArgs args in notification.fields!.args!) {
-        if (args.payload?.id == null) continue;
-        // 通过id获取消息
-        try {
-          MessageNewResponse? response =
-              await MessageService(_rocketHttpService)
-                  .getMessage(args.payload!.id!, _authentication!);
-          if (response?.message == null) continue;
-          for (MsgListener? msgListener in _msgListeners) {
-            msgListener?.call(response!.message!);
-            channelManager.notify();
+    if (notification.collection == 'stream-notify-user') {
+      // 聊天消息
+      if (notification.fields?.eventName?.contains('/notification') == true) {
+        // 收到的他人发送的消息
+        if (notification.msg == NotificationType.CHANGED) {
+          if (notification.fields?.args == null) return;
+          for (NotificationArgs args in notification.fields!.args!) {
+            if (args.payload?.id == null) continue;
+            // 通过id获取消息
+            try {
+              MessageNewResponse? response =
+                  await MessageService(_rocketHttpService)
+                      .getMessage(args.payload!.id!, _authentication!);
+              if (response?.message == null) continue;
+              for (MsgListener? msgListener in _msgListeners) {
+                msgListener?.call(response!.message!);
+                channelManager.notify();
+              }
+            } catch (e) {
+              print('onChannelEvent error::$e');
+            }
           }
-        } catch (e) {
-          print('onChannelEvent error::$e');
+        }
+        // 收到的自己发送text消息的结果
+        else if (notification.msg == NotificationType.RESULT) {
+          var result = map['result'];
+          if (result == null) return;
+          for (MsgListener? msgListener in _msgListeners) {
+            Message message = Message.fromMap(result!);
+            if (message.id != null) {
+              msgListener?.call(Message.fromMap(result!));
+              channelManager.notify();
+            }
+          }
         }
       }
-    }
-    // 收到的自己发送text消息的结果
-    else if (notification.msg == NotificationType.RESULT) {
-      var result = map['result'];
-      if (result == null) return;
-      for (MsgListener? msgListener in _msgListeners) {
-        Message message = Message.fromMap(result!);
-        if (message.id != null) {
-          msgListener?.call(Message.fromMap(result!));
-          channelManager.notify();
+    } else if (notification.collection == 'stream-notify-logged') {
+      // 用户更新消息
+      if (notification.fields?.eventName == 'user-status' &&
+          notification.fields?.userStatusArgs != null) {
+        for (UserStatusListener? listener in _userStatusListeners) {
+          listener?.call(notification.fields!.userStatusArgs!);
         }
       }
     }
@@ -357,6 +411,7 @@ class ImManager extends ChangeNotifier {
 }
 
 typedef MsgListener = Function(Message);
+typedef UserStatusListener = Function(UserStatusArgs);
 
 class ChannelManager extends ChangeNotifier {
   WebSocketService _webSocketService = WebSocketService();
@@ -398,6 +453,14 @@ class ChannelManager extends ChangeNotifier {
   sendTextMsg(String text, Room room) {
     if (text.isNotEmpty && _webSocketChannel != null) {
       _webSocketService.sendMessageOnRoom(text, _webSocketChannel!, room);
+    }
+  }
+
+  void subscribeUsersStatus(List<String> userIds) {
+    if (_webSocketChannel == null) return;
+    for (String userId in userIds) {
+      WebSocketService()
+          .streamNotifyUserStatusSubscribe(_webSocketChannel!, userId);
     }
   }
 }
