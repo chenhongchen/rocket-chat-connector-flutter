@@ -63,3 +63,18 @@ enum UserStatus {
   away,
   busy,
 }
+
+extension UserStatusValue on UserStatus {
+  String get value {
+    switch (this) {
+      case UserStatus.offline:
+        return 'offline';
+      case UserStatus.online:
+        return 'online';
+      case UserStatus.away:
+        return 'away';
+      case UserStatus.busy:
+        return 'away';
+    }
+  }
+}

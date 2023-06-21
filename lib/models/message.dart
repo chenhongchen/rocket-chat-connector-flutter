@@ -4,14 +4,6 @@ import 'package:rocket_chat_connector_flutter/models/mention.dart';
 import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
 
-enum MessageTyp {
-  TEXT,
-  IMAGE,
-  VIDEO,
-  File,
-  Custom,
-}
-
 class Message {
   String? id;
   String? rid;
@@ -165,4 +157,12 @@ class Message {
       mentions.hashCode ^
       channels.hashCode ^
       attachments.hashCode;
+}
+
+enum MessageTyp {
+  TEXT,
+  IMAGE,
+  VIDEO,
+  File,
+  Custom,
 }

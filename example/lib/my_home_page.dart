@@ -29,7 +29,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final List<Room> _rooms = <Room>[];
   final Map<String, RoomCounters?> _roomCountersMap = <String, RoomCounters>{};
-  Map<String, UserStatus> _userStatuses = <String, UserStatus>{};
+  final Map<String, UserStatus> _userStatuses = <String, UserStatus>{};
 
   @override
   void dispose() {
