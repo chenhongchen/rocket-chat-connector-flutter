@@ -30,6 +30,8 @@ abstract class BaseRoomService {
   Future<RoomCounters> counters(
       RoomCountersFilter filter, Authentication authentication);
 
+  Future<String> leave(String roomId, Authentication authentication);
+
   /// 标记已读
   Future<bool> markAsRead(Room room, Authentication authentication) async {
     Map<String, String?> data = {"rid": room.id};

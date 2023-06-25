@@ -121,4 +121,44 @@ class ChannelService extends BaseRoomService {
     }
     throw RocketChatException(body);
   }
+
+  @override
+  Future<String> leave(String roomId, Authentication authentication) async {
+    http.Response response = await httpService.post(
+      '/api/v1/channels.leave',
+      jsonEncode({'roomId': roomId}),
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      return body;
+    }
+    throw RocketChatException(body);
+  }
+
+  /// 删除channel
+  Future<String> delete(String roomId, Authentication authentication) async {
+    http.Response response = await httpService.post(
+      '/api/v1/channels.delete',
+      jsonEncode({'roomId': roomId}),
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      return body;
+    }
+    throw RocketChatException(body);
+  }
 }

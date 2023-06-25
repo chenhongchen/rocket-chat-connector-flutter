@@ -66,4 +66,24 @@ class MessageService {
       throw Exception('Failed to load image: ${response.statusCode}');
     }
   }
+
+  /// 删除私聊
+  Future<String> delete(String roomId, Authentication authentication) async {
+    final response = await _httpService.post(
+      '/api/v1/im.delete',
+      jsonEncode({'roomId': roomId}),
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      return body;
+    }
+    throw RocketChatException(body);
+  }
 }

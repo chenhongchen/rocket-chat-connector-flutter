@@ -210,6 +210,13 @@ class ImManager extends ChangeNotifier {
     return roomMessages.messages;
   }
 
+  /// 清理room历史消息(要配置"清理频道历史记录"权限)
+  Future<String?> cleanRoomHistory(RoomHistoryFilter filter) async {
+    if (_authentication == null) return null;
+    return await RoomService(_rocketHttpService)
+        .cleanRoomHistory(filter, _authentication!);
+  }
+
   ///  获取计数
   Future<RoomCounters?> counters(RoomCountersFilter filter) async {
     if (filter.room.isChannel) {
@@ -233,6 +240,44 @@ class ImManager extends ChangeNotifier {
     RoomCounters roomCounters = await RoomService(_rocketHttpService)
         .counters(filter, _authentication!);
     return roomCounters;
+  }
+
+  ///  删除channel
+  Future<String?> deleteChannel(Room room) async {
+    if (room.id == null || room.id!.isEmpty) return null;
+    return await ChannelService(_rocketHttpService)
+        .delete(room.id!, _authentication!);
+  }
+
+  ///  离开room或channel(暂时试了无效，应该是是权限问题)
+  Future<String?> leave(Room room) async {
+    if (room.id == null || room.id!.isEmpty) return null;
+    if (room.isChannel) {
+      return await leaveChannel(room.id!);
+    } else {
+      return await leaveRoom(room.id!);
+    }
+  }
+
+  /// 离开room(暂时试了无效，应该是是权限问题)
+  Future<String?> leaveChannel(String roomId) async {
+    if (_authentication == null) return null;
+    return await ChannelService(_rocketHttpService)
+        .leave(roomId, _authentication!);
+  }
+
+  /// 离开channel(暂时试了无效，应该是是权限问题)
+  Future<String?> leaveRoom(String roomId) async {
+    if (_authentication == null) return null;
+    return await RoomService(_rocketHttpService)
+        .leave(roomId, _authentication!);
+  }
+
+  /// 删除私聊(要配置"删除私聊消息"权限)
+  Future<String?> deleteIm(String roomId) async {
+    if (_authentication == null) return null;
+    return await MessageService(_rocketHttpService)
+        .delete(roomId, _authentication!);
   }
 
   /// 标记已读
