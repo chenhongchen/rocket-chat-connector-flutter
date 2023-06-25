@@ -323,26 +323,30 @@ class ImManager extends ChangeNotifier {
     return str;
   }
 
-  /// 通过uid获取头像
+  /// 通过uid获取头像(有频率限制)
   Future<Avatar?> getAvatarWithUid(String? userId) async {
     if (_authentication == null) return null;
     return await imageManager.getAvatarWithUid(
         userId, _rocketHttpService, _authentication!);
   }
 
-  /// 通过用户名获取头像
+  /// 通过用户名获取头像(有频率限制)
   Future<Avatar?> getAvatarWithUsername(String? username) async {
     if (_authentication == null) return null;
     return await imageManager.getAvatarWithUsername(
         username, _rocketHttpService, _authentication!);
   }
 
-  /// 获取room 头像
+  /// 获取room 或者 user 头像
   /// rid 和 username 不能全为空
-  Future<Avatar?> getRoomAvatar(String? rid, String? username) async {
+  Future<Avatar?> getAvatar({String? roomId, String? username}) async {
     if (_authentication == null) return null;
-    return await imageManager.getRoomAvatar(
-        rid, username, _rocketHttpService, _authentication!);
+    return await imageManager.getAvatar(
+      _rocketHttpService,
+      _authentication!,
+      roomId: roomId,
+      username: username,
+    );
   }
 
   /// 刷新所有头像（调用后，在获取头像时会重新从网络加载）

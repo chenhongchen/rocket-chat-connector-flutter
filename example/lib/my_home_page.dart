@@ -268,11 +268,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildAvatar(Room room) {
-    String userName = room.roomName;
+    String username = room.roomName;
     print('_buildAvatar :: $room');
-    String? rid = (userName.isNotEmpty ? null : (room.id ?? ''));
+    String? roomId = (username.isNotEmpty ? null : (room.id ?? ''));
     return FutureBuilder(
-        future: ImManager().getRoomAvatar(rid, userName),
+        future: ImManager().getAvatar(roomId: roomId, username: username),
         builder: (BuildContext context, AsyncSnapshot<Avatar?> snapshot) {
           Widget child;
           if (snapshot.data is Avatar) {

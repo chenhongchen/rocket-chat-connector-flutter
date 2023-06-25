@@ -95,7 +95,7 @@ abstract class BaseRoomService {
     throw RocketChatException('${response.statusCode}');
   }
 
-  /// 获取头像（频繁调用会失败）
+  /// 获取头像
   Future<Uint8List?> getAvatar(
       String? rid, String? username, Authentication authentication) async {
     String uri = '';

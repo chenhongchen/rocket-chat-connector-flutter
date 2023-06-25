@@ -16,6 +16,7 @@ class ImageManager {
   final int _cacheMaxMemoryNum = 30;
 
   final Lock _freeUpMemoryLock = Lock();
+  final Lock _imAvatarLock = Lock();
 
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
@@ -59,19 +60,29 @@ class ImageManager {
       _addImageMemories(fileName: userId, image: uList);
     }
     if (uList == null) {
-      uList = await UserService(_rocketHttpService)
-          .getAvatarWithUid(userId, _authentication);
-      _addImageMemories(fileName: userId, image: uList);
-      if (!_loadedAvatarKeys.contains(userId)) {
-        _loadedAvatarKeys.add(userId);
-      }
-      await ImUtil.writeFileToCache(userId, uList);
+      // 确保只有一个线程可以访问该代码块
+      await _imAvatarLock.synchronized(() async {
+        uList = _imageMemories[userId]?.image;
+        if (uList == null && _loadedAvatarKeys.contains(userId)) {
+          uList = await ImUtil.readFileFromCache(userId);
+          _addImageMemories(fileName: userId, image: uList);
+        }
+        if (uList == null) {
+          uList = await UserService(_rocketHttpService)
+              .getAvatarWithUid(userId, _authentication);
+          _addImageMemories(fileName: userId, image: uList);
+          if (!_loadedAvatarKeys.contains(userId)) {
+            _loadedAvatarKeys.add(userId);
+          }
+          await ImUtil.writeFileToCache(userId, uList);
+        }
+      });
     }
     Avatar? avatar;
     if (uList != null) {
       avatar = Avatar();
       try {
-        avatar.svg = Utf8Decoder().convert(uList);
+        avatar.svg = Utf8Decoder().convert(uList!);
       } catch (e) {
         avatar.image = uList;
       }
@@ -92,19 +103,29 @@ class ImageManager {
       _addImageMemories(fileName: username, image: uList);
     }
     if (uList == null) {
-      uList = await UserService(_rocketHttpService)
-          .getAvatarWithUsername(username, _authentication);
-      _addImageMemories(fileName: username, image: uList);
-      if (!_loadedAvatarKeys.contains(username)) {
-        _loadedAvatarKeys.add(username);
-      }
-      await ImUtil.writeFileToCache(username, uList);
+      // 确保只有一个线程可以访问该代码块
+      await _imAvatarLock.synchronized(() async {
+        uList = _imageMemories[username]?.image;
+        if (uList == null && _loadedAvatarKeys.contains(username)) {
+          uList = await ImUtil.readFileFromCache(username);
+          _addImageMemories(fileName: username, image: uList);
+        }
+        if (uList == null) {
+          uList = await UserService(_rocketHttpService)
+              .getAvatarWithUsername(username, _authentication);
+          _addImageMemories(fileName: username, image: uList);
+          if (!_loadedAvatarKeys.contains(username)) {
+            _loadedAvatarKeys.add(username);
+          }
+          await ImUtil.writeFileToCache(username, uList);
+        }
+      });
     }
     Avatar? avatar;
     if (uList != null) {
       avatar = Avatar();
       try {
-        avatar.svg = Utf8Decoder().convert(uList);
+        avatar.svg = Utf8Decoder().convert(uList!);
       } catch (e) {
         avatar.image = uList;
       }
@@ -112,16 +133,16 @@ class ImageManager {
     return avatar;
   }
 
-  /// 获取room 头像
+  /// 获取room 或者 user 头像
   /// rid 和 username 不能全为空
-  Future<Avatar?> getRoomAvatar(
-    String? rid,
-    String? username,
+  Future<Avatar?> getAvatar(
     rocket_http_service.HttpService _rocketHttpService,
-    Authentication _authentication,
-  ) async {
-    if (rid == null && username == null) return null;
-    String key = 'room_' + (rid ?? username)!;
+    Authentication _authentication, {
+    String? roomId,
+    String? username,
+  }) async {
+    if (roomId == null && username == null) return null;
+    String key = (roomId ?? username)!;
     Uint8List? uList = _imageMemories[key]?.image;
     if (uList == null && _loadedAvatarKeys.contains(key)) {
       uList = await ImUtil.readFileFromCache(key);
@@ -129,7 +150,7 @@ class ImageManager {
     }
     if (uList == null) {
       uList = await RoomService(_rocketHttpService)
-          .getAvatar(rid, username, _authentication);
+          .getAvatar(roomId, username, _authentication);
       _addImageMemories(fileName: key, image: uList);
       if (!_loadedAvatarKeys.contains(key)) {
         _loadedAvatarKeys.add(key);

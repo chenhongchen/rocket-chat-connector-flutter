@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:example/chat_room_view_model.dart';
 import 'package:example/utils.dart';
@@ -214,7 +213,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
     }
 
     Widget avatar = FutureBuilder(
-        future: ImManager().getAvatarWithUid(message.user?.id),
+        future: ImManager().getAvatar(username: message.user?.username),
         builder: (BuildContext context, AsyncSnapshot<Avatar?> snapshot) {
           Widget child;
           if (snapshot.data is Avatar) {

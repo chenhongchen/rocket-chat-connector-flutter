@@ -41,10 +41,14 @@ class ChatRoomViewModel extends ChangeNotifier {
       Message? lastMsg = messages.isNotEmpty ? messages.last : null;
       List<Message>? list = await ImManager()
           .getHistory(RoomHistoryFilter(room, latest: lastMsg?.ts, count: 20));
-      ImManager().markAsRead(room);
       if (list != null) {
         messages.addAll(list);
         notifyListeners();
+      }
+      try {
+        ImManager().markAsRead(room);
+      } catch (e) {
+        print('markAsRead::$e');
       }
     } catch (e) {
       print('loadMessage::$e');

@@ -7,8 +7,8 @@ import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 String serverUrl = "http://192.168.20.181:3000";
 String webSocketUrl = "ws://192.168.20.181:3000/websocket";
-String username = "chc";
-String password = "hc123456";
+String username = "chc3";
+String password = "123456";
 
 class LoginPage extends StatefulWidget {
   @override
@@ -19,12 +19,11 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   TextEditingController _controllerServiceUrl =
-      TextEditingController(text: 'http://192.168.20.181:3000');
+      TextEditingController(text: serverUrl);
   TextEditingController _controllerWebSocketUrl =
-      TextEditingController(text: 'ws://192.168.20.181:3000/websocket');
-  TextEditingController _controllerName = TextEditingController(text: 'chc');
-  TextEditingController _controllerPwd =
-      TextEditingController(text: 'hc123456');
+      TextEditingController(text: webSocketUrl);
+  TextEditingController _controllerName = TextEditingController(text: username);
+  TextEditingController _controllerPwd = TextEditingController(text: password);
 
   @override
   void dispose() {
