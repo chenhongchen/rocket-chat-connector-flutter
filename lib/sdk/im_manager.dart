@@ -110,6 +110,7 @@ class ImManager extends ChangeNotifier {
         .login(username, password);
     me = _authentication!.data?.me;
     channelManager.setChannel(_webSocketUrl, _authentication!, _onChannelEvent);
+    notifyListeners();
   }
 
   /// 登出rock.chat
@@ -119,6 +120,7 @@ class ImManager extends ChangeNotifier {
     channelManager.unsetChannel();
     _authentication = null;
     me = null;
+    notifyListeners();
   }
 
   /// 创建channel
