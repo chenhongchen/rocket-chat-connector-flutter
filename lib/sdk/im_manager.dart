@@ -154,9 +154,7 @@ class ImManager extends ChangeNotifier {
     final RoomService roomService = RoomService(_rocketHttpService);
     Message message = await roomService.uploadFile(room, path, _authentication!,
         description: description);
-    for (MsgListener? msgListener in _msgListeners) {
-      _handelReceiveMessage(msgListener, message);
-    }
+    _handelReceiveMessage(message);
   }
 
   /// 发送自定义消息(自定义字段路径MessageNew.attachments.fields)
@@ -165,9 +163,7 @@ class ImManager extends ChangeNotifier {
     MessageNewResponse response = await MessageService(_rocketHttpService)
         .postMessage(message, _authentication!);
     if (response.message != null) {
-      for (MsgListener? msgListener in _msgListeners) {
-        _handelReceiveMessage(msgListener, response.message!);
-      }
+      _handelReceiveMessage(response.message!);
     }
   }
 
@@ -492,9 +488,7 @@ class ImManager extends ChangeNotifier {
                   await MessageService(_rocketHttpService)
                       .getMessage(args.payload!.id!, _authentication!);
               if (response?.message == null) continue;
-              for (MsgListener? msgListener in _msgListeners) {
-                _handelReceiveMessage(msgListener, response!.message!);
-              }
+              _handelReceiveMessage(response!.message!);
             } catch (e) {
               print('onChannelEvent error::$e');
             }
@@ -504,10 +498,8 @@ class ImManager extends ChangeNotifier {
         else if (notification.msg == NotificationType.RESULT) {
           var result = map['result'];
           if (result == null) return;
-          for (MsgListener? msgListener in _msgListeners) {
-            Message message = Message.fromMap(result!);
-            _handelReceiveMessage(msgListener, message);
-          }
+          Message message = Message.fromMap(result!);
+          _handelReceiveMessage(message);
         }
       }
     } else if (notification.collection == 'stream-notify-logged') {
@@ -521,10 +513,12 @@ class ImManager extends ChangeNotifier {
     }
   }
 
-  _handelReceiveMessage(MsgListener? msgListener, Message message) {
+  _handelReceiveMessage(Message message) {
     if (message.id == null) return;
-    msgListener?.call(message);
-    channelManager.notify();
+    for (MsgListener? msgListener in _msgListeners) {
+      msgListener?.call(message);
+      channelManager.notify();
+    }
     if (message.rid != null) {
       List<Message>? cachedList = _messageLists[message.rid];
       if (cachedList != null) {
