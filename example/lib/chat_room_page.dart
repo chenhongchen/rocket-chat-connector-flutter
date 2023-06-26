@@ -96,7 +96,7 @@ class _ChatRoomPage extends State<ChatRoomPage> {
                     child: SmartRefresher(
                   onLoading: _viewModel.loadMessage,
                   enablePullDown: false,
-                  enablePullUp: true,
+                  enablePullUp: _viewModel.enablePullUp,
                   controller: _viewModel.controller,
                   child: ListView.builder(
                     reverse: true,

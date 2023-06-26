@@ -10,6 +10,7 @@ class ChatRoomViewModel extends ChangeNotifier {
   final ScrollController? scrollController;
   bool _isLoading = false;
   final RefreshController controller = RefreshController();
+  bool enablePullUp = true;
 
   ChatRoomViewModel(this.room, {this.scrollController}) {
     ImManager().addMsgListener(_msgListener);
@@ -39,10 +40,14 @@ class ChatRoomViewModel extends ChangeNotifier {
     if (_isLoading) return;
     try {
       Message? lastMsg = messages.isNotEmpty ? messages.last : null;
-      List<Message>? list = await ImManager()
-          .getHistory(RoomHistoryFilter(room, latest: lastMsg?.ts, count: 20));
-      if (list != null) {
+      List<Message>? list = await ImManager().getHistory(
+          RoomHistoryFilter(room, latest: lastMsg?.ts, count: 20),
+          useCached: true);
+      if (list != null && list.isNotEmpty) {
         messages.addAll(list);
+        notifyListeners();
+      } else {
+        enablePullUp = false;
         notifyListeners();
       }
       try {

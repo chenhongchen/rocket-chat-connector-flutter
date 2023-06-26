@@ -67,6 +67,9 @@ class ImManager extends ChangeNotifier {
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
 
+  // 缓存房间的消息，key是房间id
+  final Map<String, List<Message>> _messageLists = <String, List<Message>>{};
+
   @override
   void dispose() {
     _msgListeners.clear();
@@ -152,8 +155,7 @@ class ImManager extends ChangeNotifier {
     Message message = await roomService.uploadFile(room, path, _authentication!,
         description: description);
     for (MsgListener? msgListener in _msgListeners) {
-      msgListener?.call(message);
-      channelManager.notify();
+      _handelReceiveMessage(msgListener, message);
     }
   }
 
@@ -164,8 +166,7 @@ class ImManager extends ChangeNotifier {
         .postMessage(message, _authentication!);
     if (response.message != null) {
       for (MsgListener? msgListener in _msgListeners) {
-        msgListener?.call(response.message!);
-        channelManager.notify();
+        _handelReceiveMessage(msgListener, response.message!);
       }
     }
   }
@@ -186,12 +187,60 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 获取历史消息
-  Future<List<Message>?> getHistory(RoomHistoryFilter filter) async {
-    if (filter.room.isChannel) {
-      return await getChannelHistory(filter);
-    } else {
-      return await getRoomHistory(filter);
+  Future<List<Message>?> getHistory(RoomHistoryFilter filter,
+      {bool useCached = false}) async {
+    if (_authentication == null) return null;
+    if (filter.room.id == null) return null;
+    List<Message>? cachedList = _messageLists[filter.room.id];
+    if (useCached) {
+      List<Message>? list;
+      if (filter.inclusive == null &&
+          filter.offset == null &&
+          filter.unreads == null &&
+          cachedList != null) {
+        for (Message msg in cachedList) {
+          if (list != null && list.length >= (filter.count ?? 20)) {
+            break;
+          }
+          if (msg.ts == null) {
+            continue;
+          }
+          if ((msg.ts!.millisecondsSinceEpoch >=
+              (filter.latest ?? DateTime.now()).millisecondsSinceEpoch)) {
+            continue;
+          }
+          if (filter.oldest != null &&
+              msg.ts!.millisecondsSinceEpoch <=
+                  filter.oldest!.millisecondsSinceEpoch) {
+            break;
+          }
+          if (list == null) {
+            list = <Message>[];
+          }
+          list.add(msg);
+        }
+      }
+      if (list != null) return list;
     }
+
+    List<Message>? newMsgs;
+    if (filter.room.isChannel) {
+      newMsgs = await getChannelHistory(filter);
+    } else {
+      newMsgs = await getRoomHistory(filter);
+    }
+
+    if (newMsgs != null) {
+      if (cachedList == null) {
+        cachedList = <Message>[];
+        _messageLists[filter.room.id!] = cachedList;
+      }
+      cachedList.addAll(newMsgs);
+      cachedList.sort((a, b) =>
+          b.ts!.millisecondsSinceEpoch.compareTo(a.ts!.millisecondsSinceEpoch));
+    }
+
+    return newMsgs;
   }
 
   /// 获取channel历史消息
@@ -444,8 +493,7 @@ class ImManager extends ChangeNotifier {
                       .getMessage(args.payload!.id!, _authentication!);
               if (response?.message == null) continue;
               for (MsgListener? msgListener in _msgListeners) {
-                msgListener?.call(response!.message!);
-                channelManager.notify();
+                _handelReceiveMessage(msgListener, response!.message!);
               }
             } catch (e) {
               print('onChannelEvent error::$e');
@@ -458,10 +506,7 @@ class ImManager extends ChangeNotifier {
           if (result == null) return;
           for (MsgListener? msgListener in _msgListeners) {
             Message message = Message.fromMap(result!);
-            if (message.id != null) {
-              msgListener?.call(Message.fromMap(result!));
-              channelManager.notify();
-            }
+            _handelReceiveMessage(msgListener, message);
           }
         }
       }
@@ -472,6 +517,18 @@ class ImManager extends ChangeNotifier {
         for (UserStatusListener? listener in _userStatusListeners) {
           listener?.call(notification.fields!.userStatusArgs!);
         }
+      }
+    }
+  }
+
+  _handelReceiveMessage(MsgListener? msgListener, Message message) {
+    if (message.id == null) return;
+    msgListener?.call(message);
+    channelManager.notify();
+    if (message.rid != null) {
+      List<Message>? cachedList = _messageLists[message.rid];
+      if (cachedList != null) {
+        cachedList.insert(0, message);
       }
     }
   }
