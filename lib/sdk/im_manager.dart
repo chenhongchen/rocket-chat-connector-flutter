@@ -201,8 +201,9 @@ class ImManager extends ChangeNotifier {
           if (msg.ts == null) {
             continue;
           }
-          if ((msg.ts!.millisecondsSinceEpoch >=
-              (filter.latest ?? DateTime.now()).millisecondsSinceEpoch)) {
+          if (filter.latest != null &&
+              msg.ts!.millisecondsSinceEpoch >=
+                  filter.latest!.millisecondsSinceEpoch) {
             continue;
           }
           if (filter.oldest != null &&
@@ -474,36 +475,35 @@ class ImManager extends ChangeNotifier {
     rocket_notification.Notification? notification =
         rocket_notification.Notification.fromMap(map);
     print(notification);
-    if (notification.collection == 'stream-notify-user') {
-      // 聊天消息
-      if (notification.fields?.eventName?.contains('/notification') == true) {
-        // 收到的他人发送的消息
-        if (notification.msg == NotificationType.CHANGED) {
-          if (notification.fields?.args == null) return;
-          for (NotificationArgs args in notification.fields!.args!) {
-            if (args.payload?.id == null) continue;
-            // 通过id获取消息
-            try {
-              MessageNewResponse? response =
-                  await MessageService(_rocketHttpService)
-                      .getMessage(args.payload!.id!, _authentication!);
-              if (response?.message == null) continue;
-              _handelReceiveMessage(response!.message!);
-            } catch (e) {
-              print('onChannelEvent error::$e');
-            }
-          }
-        }
-        // 收到的自己发送text消息的结果
-        else if (notification.msg == NotificationType.RESULT) {
-          var result = map['result'];
-          if (result == null) return;
-          Message message = Message.fromMap(result!);
-          _handelReceiveMessage(message);
+    // 收到的他人发送的消息
+    if (notification.collection == 'stream-notify-user' &&
+        notification.fields?.eventName?.contains('/notification') == true &&
+        notification.msg == NotificationType.CHANGED) {
+      if (notification.fields?.args == null) return;
+      for (NotificationArgs args in notification.fields!.args!) {
+        if (args.payload?.id == null) continue;
+        // 通过id获取消息
+        try {
+          MessageNewResponse? response =
+              await MessageService(_rocketHttpService)
+                  .getMessage(args.payload!.id!, _authentication!);
+          if (response?.message == null) continue;
+          _handelReceiveMessage(response!.message!);
+        } catch (e) {
+          print('onChannelEvent error::$e');
         }
       }
-    } else if (notification.collection == 'stream-notify-logged') {
-      // 用户更新消息
+    }
+    // 收到的自己发送text消息的结果
+    else if (notification.msg == NotificationType.RESULT &&
+        notification.id == '42') {
+      var result = map['result'];
+      if (result == null) return;
+      Message message = Message.fromMap(result!);
+      _handelReceiveMessage(message);
+    }
+    // 用户更新消息
+    else if (notification.collection == 'stream-notify-logged') {
       if (notification.fields?.eventName == 'user-status' &&
           notification.fields?.userStatusArgs != null) {
         for (UserStatusListener? listener in _userStatusListeners) {
@@ -515,15 +515,15 @@ class ImManager extends ChangeNotifier {
 
   _handelReceiveMessage(Message message) {
     if (message.id == null) return;
-    for (MsgListener? msgListener in _msgListeners) {
-      msgListener?.call(message);
-      channelManager.notify();
-    }
     if (message.rid != null) {
       List<Message>? cachedList = _messageLists[message.rid];
       if (cachedList != null) {
         cachedList.insert(0, message);
       }
+    }
+    for (MsgListener? msgListener in _msgListeners) {
+      msgListener?.call(message);
+      channelManager.notify();
     }
   }
 }

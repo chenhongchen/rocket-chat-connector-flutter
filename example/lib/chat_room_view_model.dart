@@ -20,6 +20,7 @@ class ChatRoomViewModel extends ChangeNotifier {
   @override
   void dispose() {
     ImManager().removeMsgListener(_msgListener);
+    _markAsRead();
     super.dispose();
   }
 
@@ -50,15 +51,18 @@ class ChatRoomViewModel extends ChangeNotifier {
         enablePullUp = false;
         notifyListeners();
       }
-      try {
-        ImManager().markAsRead(room);
-      } catch (e) {
-        print('markAsRead::$e');
-      }
     } catch (e) {
       print('loadMessage::$e');
     }
     _isLoading = false;
     controller.loadComplete();
+  }
+
+  _markAsRead() {
+    try {
+      ImManager().markAsRead(room);
+    } catch (e) {
+      print('markAsRead::$e');
+    }
   }
 }
