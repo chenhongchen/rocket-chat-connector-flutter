@@ -54,6 +54,22 @@ class ImUtil {
 
   static Future<void> clearFileCache() async {
     Directory dir = await fileCacheDir();
-    await dir.delete();
+    await deleteDirectory(dir);
+  }
+
+  static Future<void> deleteDirectory(Directory directory) async {
+    if (await directory.exists()) {
+      await for (var entity in directory.list(recursive: true)) {
+        if (entity is File) {
+          await entity.delete();
+        } else if (entity is Directory) {
+          await deleteDirectory(entity);
+        }
+      }
+      await directory.delete();
+      print('Directory deleted successfully: ${directory.path}');
+    } else {
+      print('Directory does not exist: ${directory.path}');
+    }
   }
 }
