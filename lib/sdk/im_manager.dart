@@ -143,18 +143,29 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 发送文本消息
-  void sendTextMsg(String text, Room room) {
-    channelManager.sendTextMsg(text, room);
+  void sendTextMsg(String text, String roomId) {
+    channelManager.sendTextMsg(text, roomId);
   }
 
   /// 发送文件消息
-  Future<void> sendFileMsg(String path, Room room,
-      {String? description}) async {
-    if (_authentication == null) return;
+  Future<Message?> sendFileMsg(
+    String path,
+    String roomId, {
+    String? description,
+    Function(double progress)? onProgress,
+    List<MsgListener>? forbidMsgListeners, // 自己发送图片消息时禁止该消息监听的监听者
+  }) async {
+    if (_authentication == null) return null;
     final RoomService roomService = RoomService(_rocketHttpService);
-    Message message = await roomService.uploadFile(room, path, _authentication!,
-        description: description);
-    _handelReceiveMessage(message);
+    Message message = await roomService.uploadFile(
+      roomId,
+      path,
+      _authentication!,
+      description: description,
+      onProgress: onProgress,
+    );
+    _handelReceiveMessage(message, forbidMsgListeners: forbidMsgListeners);
+    return message;
   }
 
   /// 发送自定义消息(自定义字段路径MessageNew.attachments.fields)
@@ -513,7 +524,8 @@ class ImManager extends ChangeNotifier {
     }
   }
 
-  _handelReceiveMessage(Message message) {
+  _handelReceiveMessage(Message message,
+      {List<MsgListener>? forbidMsgListeners}) {
     if (message.id == null) return;
     if (message.rid != null) {
       List<Message>? cachedList = _messageLists[message.rid];
@@ -522,6 +534,9 @@ class ImManager extends ChangeNotifier {
       }
     }
     for (MsgListener? msgListener in _msgListeners) {
+      if (forbidMsgListeners?.contains(msgListener) == true) {
+        continue;
+      }
       msgListener?.call(message);
       channelManager.notify();
     }
@@ -568,9 +583,9 @@ class ChannelManager extends ChangeNotifier {
     _webSocketChannel?.sink.close();
   }
 
-  sendTextMsg(String text, Room room) {
+  sendTextMsg(String text, String roomId) {
     if (text.isNotEmpty && _webSocketChannel != null) {
-      _webSocketService.sendMessageOnRoom(text, _webSocketChannel!, room);
+      _webSocketService.sendMessageOnRoom(text, _webSocketChannel!, roomId);
     }
   }
 

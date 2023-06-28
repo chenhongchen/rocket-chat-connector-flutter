@@ -56,7 +56,7 @@ abstract class BaseRoomService {
 
   /// Upload File to a Room
   Future<Message> uploadFile(
-    Room room,
+    String roomId,
     String filename,
     Authentication authentication, {
     // A message text
@@ -66,6 +66,7 @@ abstract class BaseRoomService {
     // The thread message id (if you want upload a file to a thread)
     String? tMid,
     MediaType? mediaType,
+    Function(double progress)? onProgress,
   }) async {
     Map<String, String> fields = {};
 
@@ -79,17 +80,18 @@ abstract class BaseRoomService {
       fields['tMid'] = tMid;
     }
     http.StreamedResponse response = await httpService.postFile(
-      '/api/v1/rooms.upload/${room.id}',
+      '/api/v1/rooms.upload/$roomId',
       filename,
       authentication,
       fields: fields,
       mediaType: mediaType,
+      onProgress: onProgress,
     );
 
     if (response.statusCode == 200) {
-      String responseBody = await response.stream.bytesToString();
-      print(responseBody);
-      var json = jsonDecode(responseBody);
+      Uint8List bodyBytes = await response.stream.toBytes();
+      String body = Utf8Decoder().convert(bodyBytes);
+      var json = jsonDecode(body);
       return Message.fromMap(json['message']);
     }
     throw RocketChatException('${response.statusCode}');

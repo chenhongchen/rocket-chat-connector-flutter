@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/filter.dart';
@@ -54,8 +55,11 @@ class HttpService {
     Function? onError,
     void onDone()?,
   }) async {
-    var request =
-        http.MultipartRequest('POST', Uri.parse(_apiUrl.toString() + uri));
+    var request = MultipartRequest('POST', Uri.parse(_apiUrl.toString() + uri),
+        onProgress: (int bytes, int total) {
+      final progress = bytes / total;
+      onProgress?.call(progress);
+    });
     // 设置head
     Map<String, String>? head = await (_getHeaders(authentication));
     head['Content-Type'] = 'multipart/form-data';
@@ -87,29 +91,6 @@ class HttpService {
     request.files.add(await http.MultipartFile.fromPath(field, filename,
         contentType: mediaType));
     final streamedRequest = await request.send();
-
-    // 监听进度
-    final totalBytes = streamedRequest.contentLength;
-    if (totalBytes != null && totalBytes != 0) {
-      int bytesUploaded = 0;
-      streamedRequest.stream.listen(
-        (chunk) {
-          bytesUploaded += chunk.length;
-          final progress = bytesUploaded / totalBytes;
-          print('Upload progress: $progress');
-          onProgress?.call(progress);
-        },
-        onDone: () {
-          print('Upload complete');
-          onDone?.call();
-        },
-        onError: (error) {
-          print('Upload failed: $error');
-          onError?.call();
-        },
-        cancelOnError: true,
-      );
-    }
     return streamedRequest;
   }
 
@@ -142,4 +123,37 @@ String _urlEncode(Map object) {
     return "";
   }).join();
   return url;
+}
+
+class MultipartRequest extends http.MultipartRequest {
+  /// Creates a new [MultipartRequest].
+  MultipartRequest(
+    String method,
+    Uri url, {
+    this.onProgress,
+  }) : super(method, url);
+
+  final void Function(int bytes, int totalBytes)? onProgress;
+
+  /// Freezes all mutable fields and returns a single-subscription [ByteStream]
+  /// that will emit the request body.
+  http.ByteStream finalize() {
+    final byteStream = super.finalize();
+    if (onProgress == null) return byteStream;
+
+    final total = this.contentLength;
+    int bytes = 0;
+
+    final t = StreamTransformer.fromHandlers(
+      handleData: (List<int> data, EventSink<List<int>> sink) {
+        bytes += data.length;
+        onProgress?.call(bytes, total);
+        if (total >= bytes) {
+          sink.add(data);
+        }
+      },
+    );
+    final stream = byteStream.transform(t);
+    return http.ByteStream(stream);
+  }
 }

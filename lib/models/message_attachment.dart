@@ -22,6 +22,9 @@ class MessageAttachment {
   List<MessageAttachmentField>? fields;
 
   // 自定义
+  String? imagePath;
+
+  // 自定义
   Uint8List? thumbnail;
 
   MessageAttachment({

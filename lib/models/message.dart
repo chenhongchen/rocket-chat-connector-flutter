@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:rocket_chat_connector_flutter/models/mention.dart';
 import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
+import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 class Message {
   String? id;
@@ -16,12 +18,15 @@ class Message {
   List<String>? channels;
   List<MessageAttachment>? attachments;
 
+  // 自定义
+  ValueNotifier<double> progressNotifier = ValueNotifier<double>(0);
+
   MessageTyp get msgTyp {
     if (attachments == null || attachments!.isEmpty) {
       return MessageTyp.TEXT;
     }
     MessageAttachment attachment = attachments!.first;
-    if (attachment.imageUrl != null) {
+    if (attachment.imageUrl != null || attachment.imagePath != null) {
       return MessageTyp.IMAGE;
     } else if (attachment.videoUrl != null) {
       return MessageTyp.VIDEO;
@@ -47,7 +52,33 @@ class Message {
     this.attachments,
   });
 
-  Message.fromMap(Map<String, dynamic>? json) {
+  // 发送图片消息
+  postImageMsg({List<MsgListener>? forbidMsgListeners}) async {
+    if (msgTyp == MessageTyp.IMAGE &&
+        attachments!.first.imagePath != null &&
+        attachments!.first.imageUrl == null &&
+        rid != null) {
+      try {
+        Message? message = await ImManager().sendFileMsg(
+          attachments!.first.imagePath!,
+          rid!,
+          forbidMsgListeners: forbidMsgListeners,
+          onProgress: (double progress) {
+            progressNotifier.value = progress;
+          },
+          description: attachments!.first.description,
+        );
+        if (message != null) {
+          _fromMap(message.toMap());
+          attachments!.first.imagePath = null;
+        }
+      } catch (e) {
+        print('_postImageMsg error :: $e');
+      }
+    }
+  }
+
+  _fromMap(Map<String, dynamic>? json) {
     if (json != null) {
       id = json['_id'];
       rid = json['rid'];
@@ -99,6 +130,10 @@ class Message {
             .toList();
       }
     }
+  }
+
+  Message.fromMap(Map<String, dynamic>? json) {
+    _fromMap(json);
   }
 
   Map<String, dynamic> toMap() {

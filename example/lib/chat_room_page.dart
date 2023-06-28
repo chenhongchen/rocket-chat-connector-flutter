@@ -290,15 +290,15 @@ class _ChatRoomPage extends State<ChatRoomPage> {
   Future<void> _uploadFile() async {
     String? path =
         await Utils.pickOneImage(context, source: ImageSource.gallery);
-    if (path == null) return;
-    ImManager().sendFileMsg(path, widget.room, description: _controller.text);
+    if (path == null || widget.room.id == null) return;
+    ImManager()
+        .sendFileMsg(path, widget.room.id!, description: _controller.text);
     _controller.text = '';
   }
 
   void _sendMessage() {
-    if (_controller.text.isNotEmpty) {
-      ImManager().sendTextMsg(_controller.text, widget.room);
-      _controller.text = '';
-    }
+    if (_controller.text.isEmpty || widget.room.id == null) return;
+    ImManager().sendTextMsg(_controller.text, widget.room.id!);
+    _controller.text = '';
   }
 }

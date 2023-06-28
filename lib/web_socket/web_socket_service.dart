@@ -95,13 +95,13 @@ class WebSocketService {
   }
 
   void sendMessageOnRoom(
-      String message, WebSocketChannel webSocketChannel, Room room) {
+      String message, WebSocketChannel webSocketChannel, String roomId) {
     Map msg = {
       "msg": "method",
       "method": "sendMessage",
       "id": "42",
       "params": [
-        {"rid": room.id, "msg": message}
+        {"rid": roomId, "msg": message}
       ]
     };
 
