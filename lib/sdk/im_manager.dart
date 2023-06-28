@@ -345,10 +345,11 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 获取图片数据
-  Future<Uint8List?> getImage(MessageAttachment attachment) async {
+  Future<Uint8List?> getImage(MessageAttachment attachment,
+      {bool rawImage = false}) async {
     if (_authentication == null) return null;
     Uint8List? uList = await imageManager.getImage(
-        attachment, _rocketHttpService, _authentication!);
+        attachment, rawImage, _rocketHttpService, _authentication!);
     return uList;
   }
 

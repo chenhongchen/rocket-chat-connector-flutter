@@ -23,18 +23,21 @@ class ImageManager {
 
   Future<Uint8List?> getImage(
       MessageAttachment attachment,
+      bool rawImage,
       rocket_http_service.HttpService _rocketHttpService,
       Authentication _authentication) async {
-    String fileUri = attachment.imageUrl ?? '';
+    String fileUri =
+        (rawImage ? attachment.titleLink : attachment.imageUrl) ?? '';
     if (fileUri.isEmpty) return null;
     String fileName = ImUtil.md5FileName(fileUri);
     Uint8List? uList = _imageMemories[fileName]?.image;
     if (uList == null) {
       uList = await ImUtil.readFileFromCache(fileName);
+      if (uList != null) {
+        _addImageMemories(fileName: fileName, image: uList);
+      }
     }
-    if (uList != null) {
-      _addImageMemories(fileName: fileName, image: uList);
-    } else {
+    if (uList == null) {
       uList = await MessageService(_rocketHttpService)
           .getFile(fileUri, _authentication);
       _addImageMemories(fileName: fileName, image: uList);
