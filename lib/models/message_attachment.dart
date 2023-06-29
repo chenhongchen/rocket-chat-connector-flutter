@@ -9,7 +9,6 @@ class MessageAttachment {
   String? titleLink; //  文件链接
   bool? titleLinkDownload;
   Size? imageDimensions; // 图片尺寸
-  String? imagePreview; // 图片预览图 base64 数据
   String? imageUrl; // 图片链接
   String? imageType; // image/png
   int? imageSize; // 图片大小
@@ -33,7 +32,7 @@ class MessageAttachment {
     this.titleLink,
     this.titleLinkDownload,
     this.imageDimensions,
-    this.imagePreview,
+    String? imagePreview, // 图片预览图 base64 数据
     this.imageUrl,
     this.imageType,
     this.imageSize,
@@ -44,11 +43,7 @@ class MessageAttachment {
     this.description,
     this.format,
     this.fields,
-  }) {
-    if (imagePreview != null) {
-      thumbnail = base64Decode(imagePreview!);
-    }
-  }
+  }) : thumbnail = imagePreview == null ? null : base64Decode(imagePreview);
 
   MessageAttachment.fromMap(Map<String, dynamic>? json) {
     if (json != null) {
@@ -60,7 +55,8 @@ class MessageAttachment {
           ? Size(double.parse('${json['image_dimensions']['width']}'),
               double.parse('${json['image_dimensions']['height']}'))
           : null;
-      imagePreview = json['image_preview'];
+      String? imagePreview = json['image_preview'];
+      thumbnail = imagePreview == null ? null : base64Decode(imagePreview);
       imageUrl = json['image_url'];
       imageType = json['image_type'];
       imageSize = json['image_size'];
@@ -73,10 +69,6 @@ class MessageAttachment {
       fields = (json['fields'] as List?)
           ?.map((e) => MessageAttachmentField.fromMap(e))
           .toList();
-
-      if (imagePreview != null) {
-        thumbnail = base64Decode(imagePreview!);
-      }
     }
   }
 
@@ -91,7 +83,7 @@ class MessageAttachment {
                 'height': imageDimensions!.height
               }
             : null,
-        'image_preview': imagePreview,
+        'image_preview': thumbnail == null ? null : base64UrlEncode(thumbnail!),
         'image_url': imageUrl,
         'image_type': imageType,
         'image_size': imageSize,
@@ -106,7 +98,7 @@ class MessageAttachment {
 
   @override
   String toString() {
-    return 'MessageAttachment{ts: $ts, title: $title, title_link: $titleLink, title_link_download: $titleLinkDownload, image_dimensions: $imageDimensions, image_preview: $imagePreview, image_url: $imageUrl, image_type: $imageType, image_size: $imageSize, video_url: $videoUrl, video_type: $videoType, video_size: $videoSize, type: $type, description: $description, format: $format, fields: $fields}';
+    return 'MessageAttachment{ts: $ts, title: $title, title_link: $titleLink, title_link_download: $titleLinkDownload, image_dimensions: $imageDimensions, thumbnail: $thumbnail, image_url: $imageUrl, image_type: $imageType, image_size: $imageSize, video_url: $videoUrl, video_type: $videoType, video_size: $videoSize, type: $type, description: $description, format: $format, fields: $fields}';
   }
 
   @override
@@ -119,7 +111,7 @@ class MessageAttachment {
           titleLink == other.titleLink &&
           titleLinkDownload == other.titleLinkDownload &&
           imageDimensions == other.imageDimensions &&
-          imagePreview == other.imagePreview &&
+          thumbnail == other.thumbnail &&
           imageUrl == other.imageUrl &&
           imageType == other.imageType &&
           imageSize == other.imageSize &&
@@ -138,7 +130,7 @@ class MessageAttachment {
       titleLink.hashCode ^
       titleLinkDownload.hashCode ^
       imageDimensions.hashCode ^
-      imagePreview.hashCode ^
+      thumbnail.hashCode ^
       imageUrl.hashCode ^
       imageType.hashCode ^
       imageSize.hashCode ^

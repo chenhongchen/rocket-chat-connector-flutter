@@ -86,25 +86,21 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 注册用户（频繁调用会失败）
-  Future<User> register(UserNew userNew) async {
-    User user = await UserService(_rocketHttpService).register(userNew);
-    return user;
+  Future<User> register(UserNew userNew) {
+    return UserService(_rocketHttpService).register(userNew);
   }
 
   /// 创建用户
-  Future<User?> create(UserNew userNew, Authentication authentication) async {
-    if (_authentication == null) return null;
-    User user =
-        await UserService(_rocketHttpService).create(userNew, _authentication!);
-    return user;
+  Future<User?> create(UserNew userNew, Authentication authentication) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService).create(userNew, _authentication!);
   }
 
   /// 更新用户信息
-  Future<User?> updateUser(String userId, UserNew userNew) async {
-    if (_authentication == null) return null;
-    User user = await UserService(_rocketHttpService)
+  Future<User?> updateUser(String userId, UserNew userNew) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .updateUser(userId, userNew, _authentication!);
-    return user;
   }
 
   /// 登录rock.chat
@@ -268,89 +264,81 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 清理room历史消息(要配置"清理频道历史记录"权限)
-  Future<String?> cleanRoomHistory(RoomHistoryFilter filter) async {
-    if (_authentication == null) return null;
-    return await RoomService(_rocketHttpService)
+  Future<String?> cleanRoomHistory(RoomHistoryFilter filter) {
+    if (_authentication == null) return Future.value(null);
+    return RoomService(_rocketHttpService)
         .cleanRoomHistory(filter, _authentication!);
   }
 
   ///  获取计数
-  Future<RoomCounters?> counters(RoomCountersFilter filter) async {
+  Future<RoomCounters?> counters(RoomCountersFilter filter) {
     if (filter.room.isChannel) {
-      return await channelCounters(filter);
+      return channelCounters(filter);
     } else {
-      return await roomCounters(filter);
+      return roomCounters(filter);
     }
   }
 
   /// 获取channel计数
-  Future<RoomCounters?> channelCounters(RoomCountersFilter filter) async {
-    if (_authentication == null) return null;
-    RoomCounters roomCounters = await ChannelService(_rocketHttpService)
+  Future<RoomCounters?> channelCounters(RoomCountersFilter filter) {
+    if (_authentication == null) return Future.value(null);
+    return ChannelService(_rocketHttpService)
         .counters(filter, _authentication!);
-    return roomCounters;
   }
 
   /// 获取room计数
-  Future<RoomCounters?> roomCounters(RoomCountersFilter filter) async {
-    if (_authentication == null) return null;
-    RoomCounters roomCounters = await RoomService(_rocketHttpService)
-        .counters(filter, _authentication!);
-    return roomCounters;
+  Future<RoomCounters?> roomCounters(RoomCountersFilter filter) {
+    if (_authentication == null) return Future.value(null);
+    return RoomService(_rocketHttpService).counters(filter, _authentication!);
   }
 
   ///  删除channel
-  Future<String?> deleteChannel(Room room) async {
-    if (room.id == null || room.id!.isEmpty) return null;
-    return await ChannelService(_rocketHttpService)
+  Future<String?> deleteChannel(Room room) {
+    if (room.id == null || room.id!.isEmpty) return Future.value(null);
+    return ChannelService(_rocketHttpService)
         .delete(room.id!, _authentication!);
   }
 
   ///  离开room或channel(暂时试了无效，应该是是权限问题)
-  Future<String?> leave(Room room) async {
-    if (room.id == null || room.id!.isEmpty) return null;
+  Future<String?> leave(Room room) {
+    if (room.id == null || room.id!.isEmpty) return Future.value(null);
     if (room.isChannel) {
-      return await leaveChannel(room.id!);
+      return leaveChannel(room.id!);
     } else {
-      return await leaveRoom(room.id!);
+      return leaveRoom(room.id!);
     }
   }
 
   /// 离开room(暂时试了无效，应该是是权限问题)
-  Future<String?> leaveChannel(String roomId) async {
-    if (_authentication == null) return null;
-    return await ChannelService(_rocketHttpService)
-        .leave(roomId, _authentication!);
+  Future<String?> leaveChannel(String roomId) {
+    if (_authentication == null) return Future.value(null);
+    return ChannelService(_rocketHttpService).leave(roomId, _authentication!);
   }
 
   /// 离开channel(暂时试了无效，应该是是权限问题)
-  Future<String?> leaveRoom(String roomId) async {
-    if (_authentication == null) return null;
-    return await RoomService(_rocketHttpService)
-        .leave(roomId, _authentication!);
+  Future<String?> leaveRoom(String roomId) {
+    if (_authentication == null) return Future.value(null);
+    return RoomService(_rocketHttpService).leave(roomId, _authentication!);
   }
 
   /// 删除私聊(要配置"删除私聊消息"权限)
-  Future<String?> deleteIm(String roomId) async {
-    if (_authentication == null) return null;
-    return await MessageService(_rocketHttpService)
-        .delete(roomId, _authentication!);
+  Future<String?> deleteIm(String roomId) {
+    if (_authentication == null) return Future.value(null);
+    return MessageService(_rocketHttpService).delete(roomId, _authentication!);
   }
 
   /// 标记已读
-  Future<bool> markAsRead(Room room) async {
-    if (_authentication == null) return false;
-    return await RoomService(_rocketHttpService)
-        .markAsRead(room, _authentication!);
+  Future<bool> markAsRead(Room room) {
+    if (_authentication == null) return Future.value(false);
+    return RoomService(_rocketHttpService).markAsRead(room, _authentication!);
   }
 
   /// 获取图片数据
   Future<Uint8List?> getImage(MessageAttachment attachment,
-      {bool rawImage = false}) async {
-    if (_authentication == null) return null;
-    Uint8List? uList = await imageManager.getImage(
+      {bool rawImage = false}) {
+    if (_authentication == null) return Future.value(null);
+    return imageManager.getImage(
         attachment, rawImage, _rocketHttpService, _authentication!);
-    return uList;
   }
 
   /// 获取文件数据
@@ -368,38 +356,38 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 设置头像文件
-  Future<String> setAvatarWithImageFile(String imageFileName) async {
-    String str = await UserService(_rocketHttpService)
+  Future<String?> setAvatarWithImageFile(String imageFileName) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .setAvatarWithImageFile(imageFileName, _authentication!);
-    return str;
   }
 
   /// 设置头像url
-  Future<String> setAvatarWithImageUrl(String imageUrl) async {
-    String str = await UserService(_rocketHttpService)
+  Future<String?> setAvatarWithImageUrl(String imageUrl) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .setAvatarWithImageUrl(imageUrl, _authentication!);
-    return str;
   }
 
   /// 通过uid获取头像(有频率限制)
-  Future<Avatar?> getAvatarWithUid(String? userId) async {
-    if (_authentication == null) return null;
-    return await imageManager.getAvatarWithUid(
+  Future<Avatar?> getAvatarWithUid(String? userId) {
+    if (_authentication == null) return Future.value(null);
+    return imageManager.getAvatarWithUid(
         userId, _rocketHttpService, _authentication!);
   }
 
   /// 通过用户名获取头像(有频率限制)
-  Future<Avatar?> getAvatarWithUsername(String? username) async {
-    if (_authentication == null) return null;
-    return await imageManager.getAvatarWithUsername(
+  Future<Avatar?> getAvatarWithUsername(String? username) {
+    if (_authentication == null) return Future.value(null);
+    return imageManager.getAvatarWithUsername(
         username, _rocketHttpService, _authentication!);
   }
 
   /// 获取room 或者 user 头像
   /// rid 和 username 不能全为空
-  Future<Avatar?> getAvatar({String? roomId, String? username}) async {
-    if (_authentication == null) return null;
-    return await imageManager.getAvatar(
+  Future<Avatar?> getAvatar({String? roomId, String? username}) {
+    if (_authentication == null) return Future.value(null);
+    return imageManager.getAvatar(
       _rocketHttpService,
       _authentication!,
       roomId: roomId,
@@ -419,31 +407,31 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 用户id获取用户状态
-  Future<UserStatus?> getUserStatusWithUid(String userId) async {
-    if (_authentication == null) return null;
-    return await UserService(_rocketHttpService)
+  Future<UserStatus?> getUserStatusWithUid(String userId) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .getUserStatusWithUid(userId, _authentication!);
   }
 
   /// 用户名获取用户状态
   Future<UserStatus?> getUserStatusWithUsername(
-      String username, Authentication authentication) async {
-    if (_authentication == null) return null;
-    return await UserService(_rocketHttpService)
+      String username, Authentication authentication) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .getUserStatusWithUsername(username, _authentication!);
   }
 
   /// 用户id获取用户信息
-  Future<User?> getUserInfoWithUid(String userId) async {
-    if (_authentication == null) return null;
-    return await UserService(_rocketHttpService)
+  Future<User?> getUserInfoWithUid(String userId) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .getUserInfoWithUid(userId, _authentication!);
   }
 
   /// 用户名获取用户信息
-  Future<User?> getUserUserInfoWithUsername(String username) async {
-    if (_authentication == null) return null;
-    return await UserService(_rocketHttpService)
+  Future<User?> getUserUserInfoWithUsername(String username) {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService)
         .getUserUserInfoWithUsername(username, _authentication!);
   }
 
