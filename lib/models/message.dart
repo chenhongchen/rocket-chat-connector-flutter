@@ -21,6 +21,14 @@ class Message {
   // 自定义
   ValueNotifier<double> progressNotifier = ValueNotifier<double>(0);
 
+  bool _isDisposed = false;
+
+  dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    progressNotifier.dispose();
+  }
+
   MessageTyp get msgTyp {
     if (attachments == null || attachments!.isEmpty) {
       return MessageTyp.TEXT;
