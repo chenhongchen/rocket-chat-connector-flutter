@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:rocket_chat_connector_flutter/exceptions/exception.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';

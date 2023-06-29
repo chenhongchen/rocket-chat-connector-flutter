@@ -103,10 +103,19 @@ class ImManager extends ChangeNotifier {
         .updateUser(userId, userNew, _authentication!);
   }
 
-  /// 登录rock.chat
+  /// 用户名、密码登录
   Future<void> login(String username, String password) async {
     _authentication = await AuthenticationService(_rocketHttpService)
         .login(username, password);
+    me = _authentication!.data?.me;
+    channelManager.setChannel(_webSocketUrl, _authentication!, _onChannelEvent);
+    notifyListeners();
+  }
+
+  /// 第三方请求登录
+  Future<void> loginWithRequest(
+      Future<Authentication> Function() request) async {
+    _authentication = await request();
     me = _authentication!.data?.me;
     channelManager.setChannel(_webSocketUrl, _authentication!, _onChannelEvent);
     notifyListeners();
