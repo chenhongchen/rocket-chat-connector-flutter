@@ -331,9 +331,12 @@ class ImManager extends ChangeNotifier {
   }
 
   /// 删除私聊(要配置"删除私聊消息"权限)
-  Future<String?> deleteIm(String roomId) {
+  Future<String?> deleteIm(String roomId) async {
     if (_authentication == null) return Future.value(null);
-    return MessageService(_rocketHttpService).delete(roomId, _authentication!);
+    String body = await MessageService(_rocketHttpService)
+        .delete(roomId, _authentication!);
+    _messageLists.remove(roomId);
+    return body;
   }
 
   /// 标记已读
@@ -348,6 +351,12 @@ class ImManager extends ChangeNotifier {
     if (_authentication == null) return Future.value(null);
     return imageManager.getImage(
         attachment, rawImage, _rocketHttpService, _authentication!);
+  }
+
+  Uint8List? getImageFromMemory(MessageAttachment attachment,
+      {bool rawImage = false}) {
+    if (_authentication == null) return null;
+    return imageManager.getImageFromMemory(attachment, rawImage);
   }
 
   /// 获取文件数据
@@ -378,6 +387,28 @@ class ImManager extends ChangeNotifier {
         .setAvatarWithImageUrl(imageUrl, _authentication!);
   }
 
+  /// 获取room 或者 user 头像
+  /// rid 和 username 不能全为空
+  Future<Avatar?> getAvatar({String? roomId, String? username}) {
+    if (_authentication == null) return Future.value(null);
+    return imageManager.getAvatar(
+      _rocketHttpService,
+      _authentication!,
+      roomId: roomId,
+      username: username,
+    );
+  }
+
+  /// 获取内存中的头像
+  /// rid 和 username 不能全为空
+  Avatar? getAvatarFromMemory({
+    String? roomId,
+    String? username,
+  }) {
+    if (_authentication == null) return null;
+    return imageManager.getAvatarFromMemory(roomId: roomId, username: username);
+  }
+
   /// 通过uid获取头像(有频率限制)
   Future<Avatar?> getAvatarWithUid(String? userId) {
     if (_authentication == null) return Future.value(null);
@@ -390,18 +421,6 @@ class ImManager extends ChangeNotifier {
     if (_authentication == null) return Future.value(null);
     return imageManager.getAvatarWithUsername(
         username, _rocketHttpService, _authentication!);
-  }
-
-  /// 获取room 或者 user 头像
-  /// rid 和 username 不能全为空
-  Future<Avatar?> getAvatar({String? roomId, String? username}) {
-    if (_authentication == null) return Future.value(null);
-    return imageManager.getAvatar(
-      _rocketHttpService,
-      _authentication!,
-      roomId: roomId,
-      username: username,
-    );
   }
 
   /// 刷新所有头像（调用后，在获取头像时会重新从网络加载）

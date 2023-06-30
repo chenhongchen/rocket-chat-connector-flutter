@@ -21,6 +21,7 @@ class ImageManager {
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
 
+  /// 获取图片
   Future<Uint8List?> getImage(
       MessageAttachment attachment,
       bool rawImage,
@@ -46,8 +47,74 @@ class ImageManager {
     return uList;
   }
 
-  void clear() {
-    _imageMemories.clear();
+  /// 获取内存中的图片
+  Uint8List? getImageFromMemory(
+    MessageAttachment attachment,
+    bool rawImage,
+  ) {
+    String fileUri =
+        (rawImage ? attachment.titleLink : attachment.imageUrl) ?? '';
+    if (fileUri.isEmpty) return null;
+    String fileName = ImUtil.md5FileName(fileUri);
+    Uint8List? uList = _imageMemories[fileName]?.image;
+    return uList;
+  }
+
+  /// 获取room 或者 user 头像
+  /// rid 和 username 不能全为空
+  Future<Avatar?> getAvatar(
+    rocket_http_service.HttpService _rocketHttpService,
+    Authentication _authentication, {
+    String? roomId,
+    String? username,
+  }) async {
+    if (roomId == null && username == null) return null;
+    String key = (roomId ?? username)!;
+    Uint8List? uList = _imageMemories[key]?.image;
+    if (uList == null && _loadedAvatarKeys.contains(key)) {
+      uList = await ImUtil.readFileFromCache(key);
+      _addImageMemories(fileName: key, image: uList);
+    }
+    if (uList == null) {
+      uList = await RoomService(_rocketHttpService)
+          .getAvatar(roomId, username, _authentication);
+      _addImageMemories(fileName: key, image: uList);
+      if (!_loadedAvatarKeys.contains(key)) {
+        _loadedAvatarKeys.add(key);
+      }
+      await ImUtil.writeFileToCache(key, uList);
+    }
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
+  }
+
+  /// 获取内存中的头像
+  /// rid 和 username 不能全为空
+  Avatar? getAvatarFromMemory({
+    String? roomId,
+    String? username,
+  }) {
+    if (roomId == null && username == null) return null;
+    String key = (roomId ?? username)!;
+    Uint8List? uList = _imageMemories[key]?.image;
+    Avatar? avatar;
+    if (uList != null) {
+      avatar = Avatar();
+      try {
+        avatar.svg = Utf8Decoder().convert(uList);
+      } catch (e) {
+        avatar.image = uList;
+      }
+    }
+    return avatar;
   }
 
   /// 通过uid获取头像
@@ -136,40 +203,8 @@ class ImageManager {
     return avatar;
   }
 
-  /// 获取room 或者 user 头像
-  /// rid 和 username 不能全为空
-  Future<Avatar?> getAvatar(
-    rocket_http_service.HttpService _rocketHttpService,
-    Authentication _authentication, {
-    String? roomId,
-    String? username,
-  }) async {
-    if (roomId == null && username == null) return null;
-    String key = (roomId ?? username)!;
-    Uint8List? uList = _imageMemories[key]?.image;
-    if (uList == null && _loadedAvatarKeys.contains(key)) {
-      uList = await ImUtil.readFileFromCache(key);
-      _addImageMemories(fileName: key, image: uList);
-    }
-    if (uList == null) {
-      uList = await RoomService(_rocketHttpService)
-          .getAvatar(roomId, username, _authentication);
-      _addImageMemories(fileName: key, image: uList);
-      if (!_loadedAvatarKeys.contains(key)) {
-        _loadedAvatarKeys.add(key);
-      }
-      await ImUtil.writeFileToCache(key, uList);
-    }
-    Avatar? avatar;
-    if (uList != null) {
-      avatar = Avatar();
-      try {
-        avatar.svg = Utf8Decoder().convert(uList);
-      } catch (e) {
-        avatar.image = uList;
-      }
-    }
-    return avatar;
+  void clear() {
+    _imageMemories.clear();
   }
 
   _addImageMemories({required String fileName, Uint8List? image}) {
