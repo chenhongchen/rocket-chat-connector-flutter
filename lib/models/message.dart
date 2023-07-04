@@ -61,7 +61,8 @@ class Message {
   });
 
   // 发送图片消息
-  postImageMsg({List<MsgListener>? forbidMsgListeners}) async {
+  postImageMsg(
+      {List<MsgListener>? forbidMsgListeners, VoidCallback? onSuccess}) async {
     if (msgTyp == MessageTyp.IMAGE &&
         attachments!.first.imagePath != null &&
         attachments!.first.imageUrl == null &&
@@ -79,6 +80,7 @@ class Message {
         if (message != null) {
           _fromMap(message.toMap());
           attachments!.first.imagePath = null;
+          onSuccess?.call();
         }
       } catch (e) {
         print('_postImageMsg error :: $e');
