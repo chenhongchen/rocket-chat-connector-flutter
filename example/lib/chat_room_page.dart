@@ -23,7 +23,7 @@ class ChatRoomPage extends StatefulWidget {
   }
 }
 
-class _ChatRoomPage extends State<ChatRoomPage> {
+class _ChatRoomPage extends State<ChatRoomPage> with WidgetsBindingObserver {
   TextEditingController _controller = TextEditingController();
   ScrollController _scrollController = ScrollController();
   late final ChatRoomViewModel _viewModel = ChatRoomViewModel(
@@ -32,9 +32,49 @@ class _ChatRoomPage extends State<ChatRoomPage> {
   );
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      //进入应用时候不会触发该状态 应用程序处于可见状态，并且可以响应用户的输入事件。它相当于 Android 中Activity的onResume
+      case AppLifecycleState.resumed:
+        _appEnterForeground();
+        break;
+      //应用状态处于闲置状态，并且没有用户的输入事件，
+      // 注意：这个状态切换到 前后台 会触发，所以流程应该是先冻结窗口，然后停止UI
+      case AppLifecycleState.inactive:
+        break;
+      //当前页面即将退出
+      case AppLifecycleState.detached:
+        break;
+      // 应用程序处于不可见状态
+      case AppLifecycleState.paused:
+        _appEnterBackground();
+        break;
+    }
+  }
+
+  // app进入前台
+  void _appEnterForeground() {
+    if (!ImManager().channelManager.isConnecting) {
+      _viewModel.initLoad();
+      _viewModel.scrollController?.jumpTo(0);
+    }
+  }
+
+  // app进入后台
+  void _appEnterBackground() {}
+
+  @override
   void dispose() {
     _viewModel.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    WidgetsBinding.instance.addObserver(this);
+    super.initState();
   }
 
   @override

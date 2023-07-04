@@ -14,7 +14,7 @@ class ChatRoomViewModel extends ChangeNotifier {
 
   ChatRoomViewModel(this.room, {this.scrollController}) {
     ImManager().addMsgListener(_msgListener);
-    loadMessage();
+    initLoad();
   }
 
   @override
@@ -35,6 +35,11 @@ class ChatRoomViewModel extends ChangeNotifier {
       duration: Duration(milliseconds: 333),
       curve: Curves.easeInOut,
     );
+  }
+
+  initLoad() {
+    messages.clear();
+    loadMessage();
   }
 
   Future<void> loadMessage() async {

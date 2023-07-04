@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
@@ -28,6 +29,7 @@ import 'package:rocket_chat_connector_flutter/web_socket/notification_args.dart'
 import 'package:rocket_chat_connector_flutter/web_socket/notification_fields.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/notification_type.dart';
 import 'package:rocket_chat_connector_flutter/web_socket/web_socket_service.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:rocket_chat_connector_flutter/services/http_service.dart'
     as rocket_http_service;
@@ -129,6 +131,12 @@ class ImManager extends ChangeNotifier {
     _authentication = null;
     me = null;
     notifyListeners();
+  }
+
+  void reconnect() {
+    if (_authentication == null) return null;
+    _messageLists.clear();
+    channelManager.setChannel(_webSocketUrl, _authentication!, _onChannelEvent);
   }
 
   /// 创建channel
@@ -567,6 +575,11 @@ class ChannelManager extends ChangeNotifier {
   WebSocketService _webSocketService = WebSocketService();
   WebSocketChannel? _webSocketChannel;
   Authentication? _authentication;
+  Timer? reconnectTimer;
+  int reconnectInterval = 6; // 重连间隔时间（秒）
+
+  bool isConnecting = false;
+  final Lock _lock = Lock();
 
   @override
   void dispose() {
@@ -579,25 +592,55 @@ class ChannelManager extends ChangeNotifier {
   }
 
   setChannel(String webSocketUrl, Authentication authentication,
-      Function(dynamic event) onChannelEvent) {
-    _authentication = authentication;
-    _webSocketChannel =
-        _webSocketService.connectToWebSocket(webSocketUrl, authentication);
-    if (_authentication?.data?.me != null) {
-      _webSocketService.streamNotifyUserSubscribe(
-          _webSocketChannel!, _authentication!.data!.me!);
-    }
-    _webSocketChannel!.stream.listen((event) {
-      if (_webSocketChannel != null && _authentication?.data?.me != null) {
+      Function(dynamic event) onChannelEvent) async {
+    await _lock.synchronized(() async {
+      if (_webSocketChannel != null) {
+        _webSocketChannel?.sink.close();
+      }
+      _authentication = authentication;
+      _webSocketChannel =
+          _webSocketService.connectToWebSocket(webSocketUrl, authentication);
+      if (_authentication?.data?.me != null) {
         _webSocketService.streamNotifyUserSubscribe(
             _webSocketChannel!, _authentication!.data!.me!);
       }
-      onChannelEvent.call(event);
+      _webSocketChannel!.stream.listen(
+        (event) {
+          isConnecting = true;
+          if (_webSocketChannel != null && _authentication?.data?.me != null) {
+            _webSocketService.streamNotifyUserSubscribe(
+                _webSocketChannel!, _authentication!.data!.me!);
+          }
+          onChannelEvent.call(event);
+        },
+        onDone: () {
+          // 连接关闭时的处理
+          isConnecting = false;
+          reconnect(webSocketUrl, authentication, onChannelEvent);
+        },
+        onError: (error) {
+          // 连接错误时的处理
+          isConnecting = false;
+          reconnect(webSocketUrl, authentication, onChannelEvent);
+        },
+      );
     });
+  }
+
+  void reconnect(String webSocketUrl, Authentication authentication,
+      Function(dynamic event) onChannelEvent) {
+    if (reconnectTimer == null || !reconnectTimer!.isActive) {
+      reconnectTimer = Timer(Duration(seconds: reconnectInterval), () {
+        if (isConnecting) return;
+        setChannel(webSocketUrl, authentication, onChannelEvent);
+        ImManager()._messageLists.clear();
+      });
+    }
   }
 
   unsetChannel() {
     _webSocketChannel?.sink.close();
+    _webSocketChannel = null;
   }
 
   sendTextMsg(String text, String roomId) {
