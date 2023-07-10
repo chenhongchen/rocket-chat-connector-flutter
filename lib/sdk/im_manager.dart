@@ -519,7 +519,7 @@ class ImManager extends ChangeNotifier {
       for (NotificationArgs args in notification.fields!.args!) {
         if (args.payload?.id == null) continue;
         // 文本消息
-        if (args.payload?.message?.msg?.isEmpty == true) {
+        if (args.payload?.message?.msg?.isNotEmpty == true) {
           Message message = Message(
               id: args.payload!.id!,
               rid: args.payload!.rid!,
