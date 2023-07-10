@@ -518,15 +518,32 @@ class ImManager extends ChangeNotifier {
       if (notification.fields?.args == null) return;
       for (NotificationArgs args in notification.fields!.args!) {
         if (args.payload?.id == null) continue;
-        // 通过id获取消息
-        try {
-          MessageNewResponse? response =
-              await MessageService(_rocketHttpService)
-                  .getMessage(args.payload!.id!, _authentication!);
-          if (response?.message == null) continue;
-          _handelReceiveMessage(response!.message!);
-        } catch (e) {
-          print('onChannelEvent error::$e');
+        // 文本消息
+        if (args.payload?.message?.msg?.isEmpty == true) {
+          Message message = Message(
+              id: args.payload!.id!,
+              rid: args.payload!.rid!,
+              msg: args.payload!.message?.msg,
+              ts: DateTime.now(),
+              user: User(
+                id: args.payload!.sender?.id,
+                username: args.payload!.sender?.username,
+                name: args.payload!.sender?.name,
+              ));
+          _handelReceiveMessage(message);
+        }
+        // 图片及其他消息
+        else {
+          // 通过id获取消息
+          try {
+            MessageNewResponse? response =
+                await MessageService(_rocketHttpService)
+                    .getMessage(args.payload!.id!, _authentication!);
+            if (response?.message == null) continue;
+            _handelReceiveMessage(response!.message!);
+          } catch (e) {
+            print('onChannelEvent error::$e');
+          }
         }
       }
     }
