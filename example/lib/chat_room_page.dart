@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:typed_data';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:example/chat_room_view_model.dart';
 import 'package:example/utils.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import 'package:rocket_chat_connector_flutter/models/room.dart';
 import 'package:rocket_chat_connector_flutter/sdk/avatar.dart';
 import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:rocket_chat_connector_flutter/web_socket/notification_fields.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final Room room;
@@ -30,6 +33,8 @@ class _ChatRoomPage extends State<ChatRoomPage> with WidgetsBindingObserver {
     widget.room,
     scrollController: _scrollController,
   );
+  StreamSubscription? _subscription;
+  ConnectivityResult? _connectivityResult;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -54,8 +59,10 @@ class _ChatRoomPage extends State<ChatRoomPage> with WidgetsBindingObserver {
   }
 
   // app进入前台
-  void _appEnterForeground() {
-    if (!ImManager().channelManager.isConnecting) {
+  void _appEnterForeground() async {
+    UserStatus? userStatus = await ImManager().getStatus();
+    if (userStatus == null) return;
+    if (userStatus == UserStatus.offline) {
       _viewModel.initLoad();
       _viewModel.scrollController?.jumpTo(0);
     }
@@ -64,16 +71,32 @@ class _ChatRoomPage extends State<ChatRoomPage> with WidgetsBindingObserver {
   // app进入后台
   void _appEnterBackground() {}
 
+  _networkListen() async {
+    _connectivityResult = await (Connectivity().checkConnectivity());
+    _subscription = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      if (_connectivityResult == result) return;
+      _connectivityResult = result;
+      if (result == ConnectivityResult.mobile ||
+          result == ConnectivityResult.wifi) {
+        _appEnterForeground();
+      }
+    });
+  }
+
   @override
   void dispose() {
     _viewModel.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    _subscription?.cancel();
     super.dispose();
   }
 
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
+    _networkListen();
     super.initState();
   }
 

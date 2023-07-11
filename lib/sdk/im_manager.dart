@@ -442,6 +442,12 @@ class ImManager extends ChangeNotifier {
     _loadedAvatarKeys.remove(key);
   }
 
+  /// 获取自身状态
+  Future<UserStatus?> getStatus() {
+    if (_authentication == null) return Future.value(null);
+    return UserService(_rocketHttpService).getStatus(_authentication!);
+  }
+
   /// 用户id获取用户状态
   Future<UserStatus?> getUserStatusWithUid(String userId) {
     if (_authentication == null) return Future.value(null);
@@ -595,7 +601,7 @@ class ChannelManager extends ChangeNotifier {
   Timer? reconnectTimer;
   int reconnectInterval = 6; // 重连间隔时间（秒）
 
-  bool isConnecting = false;
+  bool _isConnecting = false;
   final Lock _lock = Lock();
 
   @override
@@ -623,7 +629,7 @@ class ChannelManager extends ChangeNotifier {
       }
       _webSocketChannel!.stream.listen(
         (event) {
-          isConnecting = true;
+          _isConnecting = true;
           if (_webSocketChannel != null && _authentication?.data?.me != null) {
             _webSocketService.streamNotifyUserSubscribe(
                 _webSocketChannel!, _authentication!.data!.me!);
@@ -632,12 +638,12 @@ class ChannelManager extends ChangeNotifier {
         },
         onDone: () {
           // 连接关闭时的处理
-          isConnecting = false;
+          _isConnecting = false;
           reconnect(webSocketUrl, authentication, onChannelEvent);
         },
         onError: (error) {
           // 连接错误时的处理
-          isConnecting = false;
+          _isConnecting = false;
           reconnect(webSocketUrl, authentication, onChannelEvent);
         },
       );
@@ -648,7 +654,7 @@ class ChannelManager extends ChangeNotifier {
       Function(dynamic event) onChannelEvent) {
     if (reconnectTimer == null || !reconnectTimer!.isActive) {
       reconnectTimer = Timer(Duration(seconds: reconnectInterval), () {
-        if (isConnecting) return;
+        if (_isConnecting) return;
         setChannel(webSocketUrl, authentication, onChannelEvent);
         ImManager()._messageLists.clear();
       });

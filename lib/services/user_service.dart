@@ -162,6 +162,31 @@ class UserService {
     }
   }
 
+  /// 获取自身状态
+  Future<UserStatus?> getStatus(Authentication authentication) async {
+    http.Response response = await _httpService.get(
+      '/api/v1/users.getStatus',
+      authentication,
+    );
+
+    String body = response.body;
+    // utf8手动转，避免自动转中文乱码
+    if (response.bodyBytes.isNotEmpty == true) {
+      body = Utf8Decoder().convert(response.bodyBytes);
+    }
+
+    if (response.statusCode == 200) {
+      Map data = jsonDecode(body);
+      String value = data['status'];
+      for (var item in UserStatus.values) {
+        if (item.toString().contains(value)) {
+          return item;
+        }
+      }
+    }
+    throw RocketChatException(body);
+  }
+
   /// 用户id获取用户状态
   Future<UserStatus?> getUserStatusWithUid(
       String userId, Authentication authentication) async {

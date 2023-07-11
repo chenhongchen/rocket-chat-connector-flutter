@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:example/chat_room_page.dart';
 import 'package:example/create_room_page.dart';
 import 'package:example/login_page.dart';
@@ -30,6 +32,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   final List<Room> _rooms = <Room>[];
   final Map<String, RoomCounters?> _roomCountersMap = <String, RoomCounters>{};
   final Map<String, UserStatus> _userStatuses = <String, UserStatus>{};
+  StreamSubscription? _subscription;
+  ConnectivityResult? _connectivityResult;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -54,13 +58,14 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   // app进入前台
-  void _appEnterForeground() {
-    if (!ImManager().channelManager.isConnecting) {
+  void _appEnterForeground() async {
+    UserStatus? userStatus = await ImManager().getStatus();
+    if (userStatus == null) return;
+    if (userStatus == UserStatus.offline) {
       ImManager().reconnect();
       _loadRooms();
       Future.delayed(Duration(seconds: 1), () {
-        HCHud.of(context)?.showTextAndDismiss(
-            text: '正在重连 ${ImManager().channelManager.isConnecting}');
+        HCHud.of(context)?.showTextAndDismiss(text: '正在重连 ${userStatus}');
       });
     }
   }
@@ -68,12 +73,27 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   // app进入后台
   void _appEnterBackground() {}
 
+  _networkListen() async {
+    _connectivityResult = await (Connectivity().checkConnectivity());
+    _subscription = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      if (_connectivityResult == result) return;
+      _connectivityResult = result;
+      if (result == ConnectivityResult.mobile ||
+          result == ConnectivityResult.wifi) {
+        _appEnterForeground();
+      }
+    });
+  }
+
   @override
   void dispose() {
     ImManager().removeMsgListener(_msgListener);
     ImManager().removeUserStatusListener(_userStatusListener);
     ImManager().clearMemoryCache();
     WidgetsBinding.instance.removeObserver(this);
+    _subscription?.cancel();
     super.dispose();
   }
 
@@ -81,6 +101,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   void initState() {
     _initIm();
     WidgetsBinding.instance.addObserver(this);
+    _networkListen();
     super.initState();
   }
 
