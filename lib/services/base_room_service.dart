@@ -99,7 +99,8 @@ abstract class BaseRoomService {
 
   /// 获取头像
   Future<Uint8List?> getAvatar(
-      String? rid, String? username, Authentication authentication) async {
+      String? rid, String? username, Authentication authentication,
+      {int? size}) async {
     String uri = '';
     if (username != null) {
       uri = '/avatar/$username';
@@ -107,8 +108,13 @@ abstract class BaseRoomService {
       uri = '/avatar/room/$rid';
     }
     if (uri.isEmpty) return null;
-    http.Response response = await _httpService.get(
+    Map params = {};
+    if (size != null && size > 0) {
+      params['size'] = size;
+    }
+    http.Response response = await _httpService.getWithParams(
       uri,
+      params,
       authentication,
     );
 

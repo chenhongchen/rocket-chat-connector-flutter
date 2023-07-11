@@ -67,9 +67,11 @@ class ImageManager {
     Authentication _authentication, {
     String? roomId,
     String? username,
+    int? size,
   }) async {
     if (roomId == null && username == null) return null;
-    String key = (roomId ?? username)!;
+    String key =
+        (roomId ?? username)! + (size != null && size > 0 ? '_size$size' : '');
     Uint8List? uList = _imageMemories[key]?.image;
     if (uList == null && _loadedAvatarKeys.contains(key)) {
       uList = await ImUtil.readFileFromCache(key);
@@ -77,7 +79,7 @@ class ImageManager {
     }
     if (uList == null) {
       uList = await RoomService(_rocketHttpService)
-          .getAvatar(roomId, username, _authentication);
+          .getAvatar(roomId, username, _authentication, size: size);
       _addImageMemories(fileName: key, image: uList);
       if (!_loadedAvatarKeys.contains(key)) {
         _loadedAvatarKeys.add(key);
@@ -101,9 +103,11 @@ class ImageManager {
   Avatar? getAvatarFromMemory({
     String? roomId,
     String? username,
+    int? size,
   }) {
     if (roomId == null && username == null) return null;
-    String key = (roomId ?? username)!;
+    String key =
+        (roomId ?? username)! + (size != null && size > 0 ? '_size$size' : '');
     Uint8List? uList = _imageMemories[key]?.image;
     Avatar? avatar;
     if (uList != null) {

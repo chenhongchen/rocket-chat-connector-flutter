@@ -397,13 +397,18 @@ class ImManager extends ChangeNotifier {
 
   /// 获取room 或者 user 头像
   /// rid 和 username 不能全为空
-  Future<Avatar?> getAvatar({String? roomId, String? username}) {
+  Future<Avatar?> getAvatar({
+    String? roomId,
+    String? username,
+    int? size,
+  }) {
     if (_authentication == null) return Future.value(null);
     return imageManager.getAvatar(
       _rocketHttpService,
       _authentication!,
       roomId: roomId,
       username: username,
+      size: size,
     );
   }
 
@@ -412,9 +417,14 @@ class ImManager extends ChangeNotifier {
   Avatar? getAvatarFromMemory({
     String? roomId,
     String? username,
+    int? size,
   }) {
     if (_authentication == null) return null;
-    return imageManager.getAvatarFromMemory(roomId: roomId, username: username);
+    return imageManager.getAvatarFromMemory(
+      roomId: roomId,
+      username: username,
+      size: size,
+    );
   }
 
   /// 通过uid获取头像(有频率限制)
