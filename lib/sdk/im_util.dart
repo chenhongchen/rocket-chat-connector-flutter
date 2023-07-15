@@ -41,6 +41,12 @@ class ImUtil {
     return cacheDir;
   }
 
+  static Future<String> getCacheFileName(String fileName) async {
+    Directory dir = await fileCacheDir();
+    final filePath = "${dir.path}/$fileName";
+    return filePath;
+  }
+
   static String extName(String fileName) {
     var extName =
         fileName.substring(fileName.lastIndexOf('.') + 1, fileName.length);

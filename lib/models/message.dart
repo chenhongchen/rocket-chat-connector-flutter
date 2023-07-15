@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:rocket_chat_connector_flutter/models/mention.dart';
 import 'package:rocket_chat_connector_flutter/models/message_attachment.dart';
 import 'package:rocket_chat_connector_flutter/models/user.dart';
-import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 class Message {
   String? id;
@@ -18,32 +16,21 @@ class Message {
   List<String>? channels;
   List<MessageAttachment>? attachments;
 
-  // 自定义
-  ValueNotifier<double> progressNotifier = ValueNotifier<double>(0);
-
-  bool _isDisposed = false;
-
-  dispose() {
-    if (_isDisposed) return;
-    _isDisposed = true;
-    progressNotifier.dispose();
-  }
-
-  MessageTyp get msgTyp {
+  MessageType get msgType {
     if (attachments == null || attachments!.isEmpty) {
-      return MessageTyp.TEXT;
+      return MessageType.TEXT;
     }
     MessageAttachment attachment = attachments!.first;
-    if (attachment.imageUrl != null || attachment.imagePath != null) {
-      return MessageTyp.IMAGE;
+    if (attachment.imageUrl != null) {
+      return MessageType.IMAGE;
     } else if (attachment.videoUrl != null) {
-      return MessageTyp.VIDEO;
+      return MessageType.VIDEO;
     } else if (attachment.titleLink != null) {
-      return MessageTyp.File;
+      return MessageType.File;
     } else if (attachment.fields != null && attachment.fields!.isNotEmpty) {
-      return MessageTyp.Custom;
+      return MessageType.Custom;
     } else {
-      return MessageTyp.TEXT;
+      return MessageType.TEXT;
     }
   }
 
@@ -60,35 +47,7 @@ class Message {
     this.attachments,
   });
 
-  // 发送图片消息
-  postImageMsg(
-      {List<MsgListener>? forbidMsgListeners, VoidCallback? onSuccess}) async {
-    if (msgTyp == MessageTyp.IMAGE &&
-        attachments!.first.imagePath != null &&
-        attachments!.first.imageUrl == null &&
-        rid != null) {
-      try {
-        Message? message = await ImManager().sendFileMsg(
-          attachments!.first.imagePath!,
-          rid!,
-          forbidMsgListeners: forbidMsgListeners,
-          onProgress: (double progress) {
-            progressNotifier.value = progress;
-          },
-          description: attachments!.first.description,
-        );
-        if (message != null) {
-          _fromMap(message.toMap());
-          attachments!.first.imagePath = null;
-          onSuccess?.call();
-        }
-      } catch (e) {
-        print('_postImageMsg error :: $e');
-      }
-    }
-  }
-
-  _fromMap(Map<String, dynamic>? json) {
+  updateFromMap(Map<String, dynamic>? json) {
     if (json != null) {
       id = json['_id'];
       rid = json['rid'];
@@ -143,7 +102,7 @@ class Message {
   }
 
   Message.fromMap(Map<String, dynamic>? json) {
-    _fromMap(json);
+    updateFromMap(json);
   }
 
   Map<String, dynamic> toMap() {
@@ -204,7 +163,7 @@ class Message {
       attachments.hashCode;
 }
 
-enum MessageTyp {
+enum MessageType {
   TEXT,
   IMAGE,
   VIDEO,

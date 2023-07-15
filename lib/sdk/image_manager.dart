@@ -25,8 +25,8 @@ class ImageManager {
   Future<Uint8List?> getImage(
       MessageAttachment attachment,
       bool rawImage,
-      rocket_http_service.HttpService _rocketHttpService,
-      Authentication _authentication) async {
+      rocket_http_service.HttpService rocketHttpService,
+      Authentication authentication) async {
     String fileUri =
         (rawImage ? attachment.titleLink : attachment.imageUrl) ?? '';
     if (fileUri.isEmpty) return null;
@@ -35,13 +35,13 @@ class ImageManager {
     if (uList == null) {
       uList = await ImUtil.readFileFromCache(fileName);
       if (uList != null) {
-        _addImageMemories(fileName: fileName, image: uList);
+        addImageToMemory(key: fileName, image: uList);
       }
     }
     if (uList == null) {
-      uList = await MessageService(_rocketHttpService)
-          .getFile(fileUri, _authentication);
-      _addImageMemories(fileName: fileName, image: uList);
+      uList = await MessageService(rocketHttpService)
+          .getFile(fileUri, authentication);
+      addImageToMemory(key: fileName, image: uList);
       ImUtil.writeFileToCache(fileName, uList);
     }
     return uList;
@@ -63,7 +63,7 @@ class ImageManager {
   /// 获取room 或者 user 头像
   /// rid 和 username 不能全为空
   Future<Avatar?> getAvatar(
-    rocket_http_service.HttpService _rocketHttpService,
+    rocket_http_service.HttpService rocketHttpService,
     Authentication _authentication, {
     String? roomId,
     String? username,
@@ -75,12 +75,12 @@ class ImageManager {
     Uint8List? uList = _imageMemories[key]?.image;
     if (uList == null && _loadedAvatarKeys.contains(key)) {
       uList = await ImUtil.readFileFromCache(key);
-      _addImageMemories(fileName: key, image: uList);
+      addImageToMemory(key: key, image: uList);
     }
     if (uList == null) {
-      uList = await RoomService(_rocketHttpService)
+      uList = await RoomService(rocketHttpService)
           .getAvatar(roomId, username, _authentication, size: size);
-      _addImageMemories(fileName: key, image: uList);
+      addImageToMemory(key: key, image: uList);
       if (!_loadedAvatarKeys.contains(key)) {
         _loadedAvatarKeys.add(key);
       }
@@ -124,14 +124,14 @@ class ImageManager {
   /// 通过uid获取头像
   Future<Avatar?> getAvatarWithUid(
     String? userId,
-    rocket_http_service.HttpService _rocketHttpService,
+    rocket_http_service.HttpService rocketHttpService,
     Authentication _authentication,
   ) async {
     if (userId == null) return null;
     Uint8List? uList = _imageMemories[userId]?.image;
     if (uList == null && _loadedAvatarKeys.contains(userId)) {
       uList = await ImUtil.readFileFromCache(userId);
-      _addImageMemories(fileName: userId, image: uList);
+      addImageToMemory(key: userId, image: uList);
     }
     if (uList == null) {
       // 确保只有一个线程可以访问该代码块
@@ -139,12 +139,12 @@ class ImageManager {
         uList = _imageMemories[userId]?.image;
         if (uList == null && _loadedAvatarKeys.contains(userId)) {
           uList = await ImUtil.readFileFromCache(userId);
-          _addImageMemories(fileName: userId, image: uList);
+          addImageToMemory(key: userId, image: uList);
         }
         if (uList == null) {
-          uList = await UserService(_rocketHttpService)
+          uList = await UserService(rocketHttpService)
               .getAvatarWithUid(userId, _authentication);
-          _addImageMemories(fileName: userId, image: uList);
+          addImageToMemory(key: userId, image: uList);
           if (!_loadedAvatarKeys.contains(userId)) {
             _loadedAvatarKeys.add(userId);
           }
@@ -167,14 +167,14 @@ class ImageManager {
   /// 通过用户名获取头像
   Future<Avatar?> getAvatarWithUsername(
     String? username,
-    rocket_http_service.HttpService _rocketHttpService,
+    rocket_http_service.HttpService rocketHttpService,
     Authentication _authentication,
   ) async {
     if (username == null) return null;
     Uint8List? uList = _imageMemories[username]?.image;
     if (uList == null && _loadedAvatarKeys.contains(username)) {
       uList = await ImUtil.readFileFromCache(username);
-      _addImageMemories(fileName: username, image: uList);
+      addImageToMemory(key: username, image: uList);
     }
     if (uList == null) {
       // 确保只有一个线程可以访问该代码块
@@ -182,12 +182,12 @@ class ImageManager {
         uList = _imageMemories[username]?.image;
         if (uList == null && _loadedAvatarKeys.contains(username)) {
           uList = await ImUtil.readFileFromCache(username);
-          _addImageMemories(fileName: username, image: uList);
+          addImageToMemory(key: username, image: uList);
         }
         if (uList == null) {
-          uList = await UserService(_rocketHttpService)
+          uList = await UserService(rocketHttpService)
               .getAvatarWithUsername(username, _authentication);
-          _addImageMemories(fileName: username, image: uList);
+          addImageToMemory(key: username, image: uList);
           if (!_loadedAvatarKeys.contains(username)) {
             _loadedAvatarKeys.add(username);
           }
@@ -211,9 +211,13 @@ class ImageManager {
     _imageMemories.clear();
   }
 
-  _addImageMemories({required String fileName, Uint8List? image}) {
+  Uint8List? getImageFromMemoryWithKey({required String key}) {
+    return _imageMemories[key]?.image;
+  }
+
+  addImageToMemory({required String key, Uint8List? image}) {
     if (image == null) return;
-    _imageMemories[fileName] = _ImageMemory(image: image);
+    _imageMemories[key] = _ImageMemory(image: image);
     _freeUpMemory();
   }
 

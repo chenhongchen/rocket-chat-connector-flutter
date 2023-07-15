@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
@@ -379,6 +380,42 @@ class ImManager extends ChangeNotifier {
       ImUtil.writeFileToCache(fileName, uList);
     }
     return uList;
+  }
+
+  /// 获取消息文件数据，带进度，返回文件路径
+  Future<String?> getFileWithProgress(
+    MessageAttachment attachment, {
+    Function(double progress)? onProgress,
+  }) async {
+    String fileUri = attachment.titleLink ?? '';
+    if (fileUri.isEmpty) return null;
+    String fileName = ImUtil.md5FileName(fileUri);
+    Uint8List? uList = await ImUtil.readFileFromCache(fileName);
+    if (uList == null) {
+      uList = await MessageService(_rocketHttpService).getFileWithProgress(
+        fileUri,
+        _authentication!,
+        onProgress: onProgress,
+      );
+      await ImUtil.writeFileToCache(fileName, uList);
+    }
+    String path = await ImUtil.getCacheFileName(fileName);
+    if (!File(path).existsSync()) {
+      return null;
+    }
+    return path;
+  }
+
+  /// 获取缓存的消息文件数据
+  Future<String?> getCachedFile(MessageAttachment attachment) async {
+    String fileUri = attachment.titleLink ?? '';
+    if (fileUri.isEmpty) return null;
+    String fileName = ImUtil.md5FileName(fileUri);
+    String path = await ImUtil.getCacheFileName(fileName);
+    if (!File(path).existsSync()) {
+      return null;
+    }
+    return path;
   }
 
   /// 设置头像文件

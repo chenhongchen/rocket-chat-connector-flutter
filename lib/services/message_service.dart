@@ -67,6 +67,24 @@ class MessageService {
     }
   }
 
+  getFileWithProgress(
+    String fileUri,
+    Authentication authentication, {
+    Function(double progress)? onProgress,
+  }) async {
+    http.StreamedResponse response = await _httpService.downloadFile(
+      fileUri,
+      authentication,
+      onProgress: onProgress,
+    );
+
+    if (response.statusCode == 200) {
+      Uint8List bytes = await response.stream.toBytes();
+      return bytes;
+    }
+    throw RocketChatException('${response.statusCode}');
+  }
+
   /// 删除私聊
   Future<String> delete(String roomId, Authentication authentication) async {
     final response = await _httpService.post(

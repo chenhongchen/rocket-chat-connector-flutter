@@ -94,6 +94,23 @@ class HttpService {
     return streamedRequest;
   }
 
+  Future<http.StreamedResponse> downloadFile(
+    String uri,
+    Authentication authentication, {
+    Function(double progress)? onProgress,
+  }) async {
+    var request = MultipartRequest('GET', Uri.parse(_apiUrl.toString() + uri),
+        onProgress: (int bytes, int total) {
+      final progress = bytes / total;
+      onProgress?.call(progress);
+    });
+    // 设置head
+    Map<String, String>? head = await (_getHeaders(authentication));
+    request.headers.addAll(head);
+    final streamedRequest = await request.send();
+    return streamedRequest;
+  }
+
   Future<Map<String, String>> _getHeaders(
       Authentication? authentication) async {
     Map<String, String> header = {

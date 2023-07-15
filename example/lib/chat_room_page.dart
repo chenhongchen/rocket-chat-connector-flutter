@@ -192,7 +192,7 @@ class _ChatRoomPage extends State<ChatRoomPage> with WidgetsBindingObserver {
     double padding = 5;
     double contentWidth = screenW * 0.45;
     // 图片消息
-    if (message.msgTyp == MessageTyp.IMAGE) {
+    if (message.msgType == MessageType.IMAGE) {
       MessageAttachment attachment = message.attachments!.first;
       double height = contentWidth *
           (attachment.imageDimensions?.height ?? 1) /
@@ -231,11 +231,11 @@ class _ChatRoomPage extends State<ChatRoomPage> with WidgetsBindingObserver {
       );
     }
     // 视频或一般文件
-    else if (message.msgTyp == MessageTyp.VIDEO ||
-        message.msgTyp == MessageTyp.File) {
+    else if (message.msgType == MessageType.VIDEO ||
+        message.msgType == MessageType.File) {
       MessageAttachment attachment = message.attachments!.first;
       String text = '文件';
-      if (message.msgTyp == MessageTyp.VIDEO) {
+      if (message.msgType == MessageType.VIDEO) {
         text = '视频';
       }
       content = Container(

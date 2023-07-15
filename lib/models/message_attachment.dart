@@ -19,11 +19,6 @@ class MessageAttachment {
   String? description; //
   String? format; // TXT // 文件格式(图片和视频没有这个字段)
   List<MessageAttachmentField>? fields;
-
-  // 自定义
-  String? imagePath;
-
-  // 自定义
   Uint8List? thumbnail;
 
   MessageAttachment({
