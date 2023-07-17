@@ -15,33 +15,33 @@ class HttpService {
           String uri, Map params, Authentication authentication) async =>
       await http.get(
           Uri.parse(_apiUrl.toString() + uri + '?' + _urlEncode(params)),
-          headers: await (_getHeaders(authentication)));
+          headers: _getHeaders(authentication));
 
   Future<http.Response> getWithFilter(
           String uri, Filter filter, Authentication authentication) async =>
       await http.get(
           Uri.parse(
               _apiUrl.toString() + uri + '?' + _urlEncode(filter.toMap())),
-          headers: await (_getHeaders(authentication)));
+          headers: _getHeaders(authentication));
 
   Future<http.Response> get(String uri, Authentication authentication) async =>
       await http.get(Uri.parse(_apiUrl.toString() + uri),
-          headers: await (_getHeaders(authentication)));
+          headers: _getHeaders(authentication));
 
   Future<http.Response> post(
           String uri, String body, Authentication? authentication) async =>
       await http.post(Uri.parse(_apiUrl.toString() + uri),
-          headers: await (_getHeaders(authentication)), body: body);
+          headers: _getHeaders(authentication), body: body);
 
   Future<http.Response> put(
           String uri, String body, Authentication authentication) async =>
       await http.put(Uri.parse(_apiUrl.toString() + uri),
-          headers: await (_getHeaders(authentication)), body: body);
+          headers: _getHeaders(authentication), body: body);
 
   Future<http.Response> delete(
           String uri, Authentication authentication) async =>
       await http.delete(Uri.parse(_apiUrl.toString() + uri),
-          headers: await (_getHeaders(authentication)));
+          headers: _getHeaders(authentication));
 
   Future<http.StreamedResponse> postFile(
     String uri,
@@ -61,7 +61,7 @@ class HttpService {
       onProgress?.call(progress);
     });
     // 设置head
-    Map<String, String>? head = await (_getHeaders(authentication));
+    Map<String, String>? head = _getHeaders(authentication);
     head['Content-Type'] = 'multipart/form-data';
     request.headers.addAll(head);
     // 设置参数
@@ -105,14 +105,13 @@ class HttpService {
       onProgress?.call(progress);
     });
     // 设置head
-    Map<String, String>? head = await (_getHeaders(authentication));
+    Map<String, String>? head = _getHeaders(authentication);
     request.headers.addAll(head);
     final streamedRequest = await request.send();
     return streamedRequest;
   }
 
-  Future<Map<String, String>> _getHeaders(
-      Authentication? authentication) async {
+  Map<String, String> _getHeaders(Authentication? authentication) {
     Map<String, String> header = {
       'Content-type': 'application/json',
     };
