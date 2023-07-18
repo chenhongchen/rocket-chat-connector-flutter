@@ -31,7 +31,7 @@ class UserService {
       Map data = jsonDecode(body);
       return User.fromMap(data['user']);
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<User> create(UserNew userNew, Authentication authentication) async {
@@ -51,7 +51,7 @@ class UserService {
       Map data = jsonDecode(body);
       return User.fromMap(data['user']);
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<User> updateUser(
@@ -72,7 +72,7 @@ class UserService {
       Map data = jsonDecode(body);
       return User.fromMap(data['user']);
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<String> logout(Authentication authentication) async {
@@ -91,7 +91,7 @@ class UserService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<String> setAvatarWithImageFile(
@@ -107,7 +107,7 @@ class UserService {
       String responseBody = await response.stream.bytesToString();
       return responseBody;
     }
-    throw RocketChatException('${response.statusCode}');
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<String> setAvatarWithImageUrl(
@@ -127,7 +127,7 @@ class UserService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   /// 获取头像（频繁调用会失败）
@@ -184,7 +184,7 @@ class UserService {
         }
       }
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   /// 用户id获取用户状态
@@ -211,7 +211,7 @@ class UserService {
         }
       }
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   /// 用户名获取用户状态
@@ -238,7 +238,7 @@ class UserService {
         }
       }
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   /// 用户id获取用户信息
@@ -260,7 +260,7 @@ class UserService {
       Map data = jsonDecode(body);
       return User.fromMap(data['user']);
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   /// 用户名获取用户信息
@@ -282,6 +282,6 @@ class UserService {
       Map data = jsonDecode(body);
       return User.fromMap(data['user']);
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 }

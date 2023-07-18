@@ -27,7 +27,7 @@ class AuthenticationService {
     if (response.statusCode == 200) {
       return Authentication.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<User> me(Authentication authentication) async {
@@ -45,6 +45,6 @@ class AuthenticationService {
     if (response.statusCode == 200) {
       return User.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 }

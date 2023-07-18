@@ -51,7 +51,8 @@ abstract class BaseRoomService {
     if (response.statusCode == 200) {
       return Response.fromMap(jsonDecode(body)).success == true;
     }
-    throw RocketChatException(body);
+    throw RocketChatException(
+        '${response.statusCode}:${response.reasonPhrase}');
   }
 
   /// Upload File to a Room
@@ -94,7 +95,8 @@ abstract class BaseRoomService {
       var json = jsonDecode(body);
       return Message.fromMap(json['message']);
     }
-    throw RocketChatException('${response.statusCode}');
+    throw RocketChatException(
+        '${response.statusCode}:${response.reasonPhrase}');
   }
 
   /// 获取头像

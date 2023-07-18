@@ -33,7 +33,7 @@ class ChannelService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomNewResponse.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -54,7 +54,7 @@ class ChannelService extends BaseRoomService {
       List rooms = json['channels'] ?? [];
       return rooms.map((e) => Room.fromMap(e)).toList();
     }
-    throw RocketChatException(response.body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -75,7 +75,7 @@ class ChannelService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomMessages.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -96,7 +96,7 @@ class ChannelService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomMessages.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -119,7 +119,7 @@ class ChannelService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomCounters.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -139,7 +139,7 @@ class ChannelService extends BaseRoomService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   /// 删除channel
@@ -159,6 +159,6 @@ class ChannelService extends BaseRoomService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 }

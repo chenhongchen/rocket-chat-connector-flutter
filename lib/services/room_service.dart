@@ -35,7 +35,7 @@ class RoomService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomNewResponse.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -56,7 +56,7 @@ class RoomService extends BaseRoomService {
       List update = json['update'] ?? [];
       return update.map((e) => Room.fromMap(e)).toList();
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -77,7 +77,7 @@ class RoomService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomMessages.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -98,7 +98,7 @@ class RoomService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomMessages.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -119,7 +119,7 @@ class RoomService extends BaseRoomService {
     if (response.statusCode == 200) {
       return RoomCounters.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   @override
@@ -139,7 +139,7 @@ class RoomService extends BaseRoomService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<String> cleanRoomHistory(
@@ -159,6 +159,6 @@ class RoomService extends BaseRoomService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 }

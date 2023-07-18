@@ -26,6 +26,6 @@ class SubscriptionService {
     if (response.statusCode == 200) {
       return Subscription.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 }

@@ -29,7 +29,7 @@ class MessageService {
     if (response.statusCode == 200) {
       return MessageNewResponse.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<MessageNewResponse?> getMessage(
@@ -49,7 +49,7 @@ class MessageService {
     if (response.statusCode == 200) {
       return MessageNewResponse.fromMap(jsonDecode(body));
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 
   Future<Uint8List> getFile(
@@ -97,6 +97,6 @@ class MessageService {
     if (response.statusCode == 200) {
       return body;
     }
-    throw RocketChatException(body);
+    throw RocketChatException.fromResponse(response);
   }
 }
