@@ -63,7 +63,7 @@ class HttpService {
       onProgress?.call(progress);
     });
     // 设置head
-    Map<String, String>? head = _getHeaders(authentication);
+    Map<String, String> head = _getHeaders(authentication);
     head['Content-Type'] = 'multipart/form-data';
     request.headers.addAll(head);
     // 设置参数
@@ -102,6 +102,9 @@ class HttpService {
     Function(int receivedBytes, int total)? onProgress,
   }) async {
     final request = http.Request('GET', Uri.parse(_apiUrl.toString() + uri));
+    // 设置head
+    Map<String, String> head = _getHeaders(authentication);
+    request.headers.addAll(head);
     final response = await http.Client().send(request);
 
     if (response.statusCode == 200) {
