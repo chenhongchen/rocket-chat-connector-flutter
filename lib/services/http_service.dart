@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:rocket_chat_connector_flutter/exceptions/exception.dart';
 import 'package:rocket_chat_connector_flutter/models/authentication.dart';
 import 'package:rocket_chat_connector_flutter/models/filters/filter.dart';
 import 'package:http_parser/http_parser.dart';
@@ -90,25 +92,43 @@ class HttpService {
     // 上传文件
     request.files.add(await http.MultipartFile.fromPath(field, filename,
         contentType: mediaType));
-    final streamedRequest = await request.send();
-    return streamedRequest;
+    final streamedResponse = await request.send();
+    return streamedResponse;
   }
 
-  Future<http.StreamedResponse> downloadFile(
+  Future<Uint8List?> downloadFile(
     String uri,
     Authentication authentication, {
-    Function(double progress)? onProgress,
+    Function(int receivedBytes, int total)? onProgress,
   }) async {
-    var request = MultipartRequest('GET', Uri.parse(_apiUrl.toString() + uri),
-        onProgress: (int bytes, int total) {
-      final progress = bytes / total;
-      onProgress?.call(progress);
-    });
-    // 设置head
-    Map<String, String>? head = _getHeaders(authentication);
-    request.headers.addAll(head);
-    final streamedRequest = await request.send();
-    return streamedRequest;
+    final request = http.Request('GET', Uri.parse(_apiUrl.toString() + uri));
+    final response = await http.Client().send(request);
+
+    if (response.statusCode == 200) {
+      final contentLength = response.contentLength;
+      var receivedBytes = 0;
+      Completer<Uint8List?> completer = Completer<Uint8List?>();
+      List<int> bytes = <int>[];
+      response.stream.listen(
+        (data) {
+          receivedBytes += data.length;
+          bytes += data;
+          onProgress?.call(receivedBytes, contentLength ?? -1);
+        },
+        onDone: () async {
+          // 下载完成
+          // 你可以在这里进行其他操作，如保存文件到本地等
+          completer.complete(Uint8List.fromList(bytes));
+        },
+        onError: (error) {
+          // 下载过程中发生错误
+          completer.complete(null);
+        },
+      );
+      return completer.future;
+    }
+
+    throw RocketChatException('${response.statusCode}');
   }
 
   Map<String, String> _getHeaders(Authentication? authentication) {

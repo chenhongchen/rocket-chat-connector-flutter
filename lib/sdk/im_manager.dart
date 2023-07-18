@@ -395,9 +395,16 @@ class ImManager extends ChangeNotifier {
       uList = await MessageService(_rocketHttpService).getFileWithProgress(
         fileUri,
         _authentication!,
-        onProgress: onProgress,
+        onProgress: (int receivedBytes, int total) {
+          if (total == -1) {
+            total = attachment.videoSize ?? -1;
+          }
+          onProgress?.call(receivedBytes.toDouble() / total.toDouble());
+        },
       );
-      await ImUtil.writeFileToCache(fileName, uList);
+      if (uList != null) {
+        await ImUtil.writeFileToCache(fileName, uList);
+      }
     }
     String path = await ImUtil.getCacheFileName(fileName);
     if (!File(path).existsSync()) {

@@ -67,22 +67,17 @@ class MessageService {
     }
   }
 
-  getFileWithProgress(
+  Future<Uint8List?> getFileWithProgress(
     String fileUri,
     Authentication authentication, {
-    Function(double progress)? onProgress,
+    Function(int receivedBytes, int total)? onProgress,
   }) async {
-    http.StreamedResponse response = await _httpService.downloadFile(
+    Uint8List? bytes = await _httpService.downloadFile(
       fileUri,
       authentication,
       onProgress: onProgress,
     );
-
-    if (response.statusCode == 200) {
-      Uint8List bytes = await response.stream.toBytes();
-      return bytes;
-    }
-    throw RocketChatException('${response.statusCode}');
+    return bytes;
   }
 
   /// 删除私聊
