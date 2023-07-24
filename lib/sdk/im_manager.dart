@@ -570,7 +570,7 @@ class ImManager extends ChangeNotifier {
     var map = jsonDecode('$event');
     rocket_notification.Notification? notification =
         rocket_notification.Notification.fromMap(map);
-    print(notification);
+    // print(notification);
     // 收到的他人发送的消息
     if (notification.collection == 'stream-notify-user' &&
         notification.fields?.eventName?.contains('/notification') == true &&

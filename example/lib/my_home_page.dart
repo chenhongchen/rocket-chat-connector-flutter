@@ -179,7 +179,6 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   _userStatusListener(UserStatusArgs args) {
-    print('_userStatusListener ${args.toString()}');
     _userStatuses[args.userId] = args.status;
     setState(() {});
   }
