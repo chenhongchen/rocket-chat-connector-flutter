@@ -25,6 +25,8 @@ class Message {
       return MessageType.IMAGE;
     } else if (attachment.videoUrl != null) {
       return MessageType.VIDEO;
+    } else if (attachment.audioUrl != null) {
+      return MessageType.AUDIO;
     } else if (attachment.titleLink != null) {
       return MessageType.File;
     } else if (attachment.fields != null && attachment.fields!.isNotEmpty) {
@@ -167,6 +169,7 @@ enum MessageType {
   TEXT,
   IMAGE,
   VIDEO,
+  AUDIO,
   File,
   Custom,
 }

@@ -85,6 +85,11 @@ class HttpService {
         mediaType = MediaType('image', fileExt);
       } else if (fileExt == 'mp4') {
         mediaType = MediaType("video", fileExt);
+      } else if (fileExt == 'amr' ||
+          fileExt == 'mp3' ||
+          fileExt == 'wav' ||
+          fileExt == 'm4a') {
+        mediaType = MediaType("audio", fileExt);
       } else {
         mediaType = MediaType("application", "octet-stream");
       }

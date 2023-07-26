@@ -15,7 +15,11 @@ class MessageAttachment {
   String? videoUrl; // 视频地址
   String? videoType; // video/mp4
   int? videoSize; // 视频大小
+  String? audioUrl; // 音频地址
+  String? audioType; // 音频类型
+  int? audioSize; // 音频大小
   String? type; // file
+  int? size;
   String? description; //
   String? format; // TXT // 文件格式(图片和视频没有这个字段)
   List<MessageAttachmentField>? fields;
@@ -34,6 +38,8 @@ class MessageAttachment {
     this.videoUrl,
     this.videoType,
     this.videoSize,
+    this.audioUrl,
+    this.audioSize,
     this.type,
     this.description,
     this.format,
@@ -58,7 +64,11 @@ class MessageAttachment {
       videoUrl = json['video_url'];
       videoType = json['video_type'];
       videoSize = json['video_size'];
+      audioUrl = json['audio_url'];
+      audioType = json['audio_type'];
+      audioSize = json['audio_size'];
       type = json['type'];
+      size = json['size'];
       description = json['description'];
       format = json['format'];
       fields = (json['fields'] as List?)
