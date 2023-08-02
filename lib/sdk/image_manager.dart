@@ -13,10 +13,15 @@ import 'package:synchronized/synchronized.dart';
 
 class ImageManager {
   final Map<String, _ImageMemory> _imageMemories = <String, _ImageMemory>{};
-  final int _cacheMaxMemoryNum = 30;
-
   final Lock _freeUpMemoryLock = Lock();
   final Lock _imAvatarLock = Lock();
+
+  int _cacheMaxMemoryNum = 10;
+
+  set cacheMaxMemoryNum(int value) {
+    _cacheMaxMemoryNum = value;
+    _freeUpMemory();
+  }
 
   // 已网络加载的头像的key
   final List _loadedAvatarKeys = [];
