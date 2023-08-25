@@ -7,8 +7,13 @@ import 'package:rocket_chat_connector_flutter/sdk/im_manager.dart';
 
 String serverUrl = "http://192.168.20.181:3000";
 String webSocketUrl = "ws://192.168.20.181:3000/websocket";
-String username = "chc3";
-String password = "123456";
+String username = "chc";
+String password = "hc123456";
+
+// String serverUrl = "https://im.qubolive.com";
+// String webSocketUrl = "wss://im.qubolive.com/websocket";
+// String username = "chc";
+// String password = "123456";
 
 class LoginPage extends StatefulWidget {
   @override
